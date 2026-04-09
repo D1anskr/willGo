@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\\willGo.ico</ApplicationIcon>
+    <Version>1.0.12</Version>
+    <Product>willGo</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tmp\**\*.cs" />
+    <EmbeddedResource Remove="tmp\**\*" />
+    <None Remove="tmp\**\*" />
+    <Page Remove="tmp\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.7.0" />
+  </ItemGroup>
+</Project>

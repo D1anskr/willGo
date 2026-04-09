@@ -1,0 +1,35 @@
+<Window x:Class="FloatingDeskAssistant.UI.Windows.BallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="64"
+        Height="64"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True">
+    <Window.ContextMenu>
+        <ContextMenu x:Name="BallContextMenu" Opened="BallContextMenu_OnOpened">
+            <MenuItem x:Name="CompactModeMenuItem" Click="CompactModeMenuItem_OnClick" />
+            <MenuItem Header="退出" Click="ExitMenuItem_OnClick" />
+        </ContextMenu>
+    </Window.ContextMenu>
+    <Grid>
+        <Border x:Name="BallBorder"
+                CornerRadius="32"
+                Background="#F2FFFFFF"
+                BorderBrush="#66FFFFFF"
+                BorderThickness="1">
+            <Grid>
+                <Ellipse Fill="#33FFFFFF" Margin="6" />
+                <TextBlock Text="AI"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="#FF1C1C1C" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

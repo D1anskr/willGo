@@ -1,0 +1,35 @@
+# IDE settings
+.idea/
+.vs/
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# .NET user-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+**/bin/
+**/obj/
+artifacts/
+publish/
+dist/
+tmp/
+
+# Packages and logs
+packages/
+TestResults/
+*.nupkg
+*.snupkg
+*.log
+
+# Local planning artifacts
+findings.md
+progress.md
+task_plan.md

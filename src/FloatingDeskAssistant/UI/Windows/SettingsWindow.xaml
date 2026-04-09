@@ -1,0 +1,264 @@
+<Window x:Class="FloatingDeskAssistant.UI.Windows.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings"
+        Width="760"
+        Height="760"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF1E1E1E">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <GroupBox Header="Primary" Foreground="White" Margin="0,0,8,0">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="BaseUrl" Foreground="White" />
+                        <TextBox Grid.Row="1" Margin="0,4,0,8" Text="{Binding EditableConfig.Primary.BaseUrl}" />
+                        <TextBlock Grid.Row="2" Text="ApiKey" Foreground="White" />
+                        <TextBox Grid.Row="3" Margin="0,4,0,8" Text="{Binding EditableConfig.Primary.ApiKey}" />
+                        <StackPanel Grid.Row="4">
+                            <TextBlock Text="Protocol" Foreground="White" />
+                            <ComboBox Margin="0,4,0,8" ItemsSource="{Binding ProtocolOptions}" SelectedItem="{Binding EditableConfig.Primary.Protocol}" />
+                            <TextBlock Text="Model" Foreground="White" />
+                            <TextBox Margin="0,4,0,8" Text="{Binding EditableConfig.Primary.Model}" />
+                            <TextBlock Text="SystemPrompt" Foreground="White" />
+                            <TextBox Margin="0,4,0,8" Height="90" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding EditableConfig.Primary.SystemPrompt}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Timeout(s)" Foreground="White" />
+                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Primary.TimeoutSeconds}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="MaxRetries" Foreground="White" />
+                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Primary.MaxRetries}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Grid.Column="1" Header="Secondary" Foreground="White" Margin="8,0,0,0">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="BaseUrl" Foreground="White" />
+                        <TextBox Grid.Row="1" Margin="0,4,0,8" Text="{Binding EditableConfig.Secondary.BaseUrl}" />
+                        <TextBlock Grid.Row="2" Text="ApiKey" Foreground="White" />
+                        <TextBox Grid.Row="3" Margin="0,4,0,8" Text="{Binding EditableConfig.Secondary.ApiKey}" />
+                        <StackPanel Grid.Row="4">
+                            <TextBlock Text="Protocol" Foreground="White" />
+                            <ComboBox Margin="0,4,0,8" ItemsSource="{Binding ProtocolOptions}" SelectedItem="{Binding EditableConfig.Secondary.Protocol}" />
+                            <TextBlock Text="Model" Foreground="White" />
+                            <TextBox Margin="0,4,0,8" Text="{Binding EditableConfig.Secondary.Model}" />
+                            <TextBlock Text="SystemPrompt" Foreground="White" />
+                            <TextBox Margin="0,4,0,8" Height="90" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding EditableConfig.Secondary.SystemPrompt}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Timeout(s)" Foreground="White" />
+                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Secondary.TimeoutSeconds}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="MaxRetries" Foreground="White" />
+                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Secondary.MaxRetries}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Grid.Row="1" Grid.ColumnSpan="2" Header="Appearance" Foreground="White" Margin="0,12,0,0">
+                    <WrapPanel Margin="12" Orientation="Horizontal">
+                        <TextBlock Text="Ball Opacity" Foreground="White" VerticalAlignment="Center" />
+                        <Slider Width="180" Margin="12,0,8,0" Minimum="0.05" Maximum="1" Value="{Binding EditableConfig.BallOpacity}" />
+                        <TextBlock Text="{Binding EditableConfig.BallOpacity, StringFormat=F2}" Foreground="White" VerticalAlignment="Center" />
+                        <TextBlock Margin="24,0,0,0" Text="Window Opacity" Foreground="White" VerticalAlignment="Center" />
+                        <Slider Width="180" Margin="12,0,8,0" Minimum="0.3" Maximum="1" Value="{Binding EditableConfig.WindowOpacity}" />
+                        <TextBlock Text="{Binding EditableConfig.WindowOpacity, StringFormat=F2}" Foreground="White" VerticalAlignment="Center" />
+                        <TextBlock Margin="24,0,0,0" Text="Message Font" Foreground="White" VerticalAlignment="Center" />
+                        <Slider Width="180" Margin="12,0,8,0" Minimum="6" Maximum="14" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EditableConfig.MessageFontSize}" />
+                        <TextBlock Text="{Binding EditableConfig.MessageFontSize, StringFormat=F0}" Foreground="White" VerticalAlignment="Center" />
+                    </WrapPanel>
+                </GroupBox>
+
+                <GroupBox Grid.Row="2" Grid.ColumnSpan="2" Header="Compact Mode" Foreground="White" Margin="0,12,0,0">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Compact Mode Style" Foreground="White" />
+                            <ComboBox Margin="0,4,0,0" Width="220"
+                                      ItemsSource="{Binding CompactModeLevelOptions}"
+                                      SelectedItem="{Binding EditableConfig.CompactModeLevel}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Margin="0,10,0,0" Foreground="#FFDDDDDD" TextWrapping="Wrap"
+                                   Text="Mode1 keeps the current compact layout. Mode2 hides the input box and Desktop button, turns the chat into a passive overlay, and keeps the history list visible. Mode3 keeps the same passive latest-message reader, but hides history and shows only the newest reply plus any auto-expanded overflow columns." />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="Remote Capture" Foreground="White" Margin="0,12,0,0">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Foreground="#FFDDDDDD" TextWrapping="Wrap"
+                                   Text="This mode affects only the Phone remote trigger. You can keep full desktop capture, or save a preset region and let future phone taps capture only that area." />
+
+                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                            <TextBlock Text="Remote Capture Mode" Foreground="White" />
+                            <ComboBox Margin="0,4,0,0" Width="220"
+                                      ItemsSource="{Binding RemoteCaptureModeOptions}"
+                                      SelectedItem="{Binding EditableConfig.RemoteCaptureMode}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Margin="0,14,0,0" Orientation="Horizontal">
+                            <Button Padding="14,8" Content="Choose Region" Click="ChooseRemoteRegionButton_OnClick" />
+                            <Button Margin="8,0,0,0" Padding="14,8" Content="Clear Region" Click="ClearRemoteRegionButton_OnClick" />
+                        </StackPanel>
+
+                        <Border Grid.Row="3" Margin="0,14,0,0" Padding="12" Background="#22000000" CornerRadius="8" BorderBrush="#33FFFFFF" BorderThickness="1">
+                            <TextBlock Foreground="#FFF0F0F0" TextWrapping="Wrap" Text="{Binding RemoteCaptureRegionSummary}" />
+                        </Border>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Grid.Row="4" Grid.ColumnSpan="2" Header="Remote Prompt Presets" Foreground="White" Margin="0,12,0,0">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Foreground="#FFDDDDDD" TextWrapping="Wrap"
+                                       Text="These presets appear as one-tap buttons on the Phone remote page. Add complete oral-question prompts here, then trigger them remotely after switching to compact mode." />
+                            <Button Grid.Column="1" Margin="12,0,0,0" Padding="14,8" Content="Add Preset" Click="AddPromptPresetButton_OnClick" />
+                        </Grid>
+
+                        <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                            <TextBlock Foreground="#FFAAAAAA"
+                                       Text="Empty title or prompt entries are skipped on save."
+                                       Visibility="{Binding HasPromptPresets, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Foreground="#FFAAAAAA"
+                                       Text="No remote prompt presets yet. Click Add Preset to create one."
+                                       Visibility="{Binding NoPromptPresets, Converter={StaticResource BoolToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding PromptPresets}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,10,0,0" Padding="12" CornerRadius="10" Background="#22000000" BorderBrush="#33FFFFFF" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBox Grid.Column="0"
+                                                         Margin="0,0,8,0"
+                                                         VerticalAlignment="Center"
+                                                         Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+                                                <CheckBox Grid.Column="1"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center"
+                                                          IsChecked="{Binding IsEnabled}" />
+                                                <TextBlock Grid.Column="2" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#FFCCCCCC" Text="Enabled" />
+                                                <Button Grid.Column="3" Margin="0,0,8,0" Padding="10,6" Content="Up" Click="MovePromptPresetUpButton_OnClick" />
+                                                <Button Grid.Column="4" Padding="10,6" Content="Down" Click="MovePromptPresetDownButton_OnClick" />
+
+                                                <Grid Grid.Row="1" Grid.ColumnSpan="5" Margin="0,10,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0"
+                                                             Height="90"
+                                                             AcceptsReturn="True"
+                                                             TextWrapping="Wrap"
+                                                             VerticalScrollBarVisibility="Auto"
+                                                             Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" />
+                                                    <Button Grid.Column="1" Margin="8,0,0,0" Padding="12,6" Content="Delete" Click="DeletePromptPresetButton_OnClick" />
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Compact mode can be toggled from the chat window. Press Esc to return to full mode. Mode2 keeps history visible; Mode3 shows only the latest reply. Passive overlay wheel scrolling still works whenever the history area is shown." Foreground="#FFBBBBBB" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Margin="0,0,8,0" Padding="14,8" Content="Defaults" Click="DefaultsButton_OnClick" />
+                <Button Margin="0,0,8,0" Padding="14,8" Content="Cancel" Click="CancelButton_OnClick" />
+                <Button Padding="14,8" Content="Save" Click="SaveButton_OnClick" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
