@@ -7,26 +7,20 @@
 Thumbs.db
 .DS_Store
 
-# .NET user-specific files
-*.user
-*.rsuser
-*.suo
-*.userosscache
-*.sln.docstates
+# Xcode / SwiftPM user-specific files
+*.xcuserstate
+*.xcworkspace
+xcuserdata/
+.build/
+DerivedData/
 
 # Build outputs
-**/bin/
-**/obj/
 artifacts/
 publish/
 dist/
 tmp/
 
 # Packages and logs
-packages/
-TestResults/
-*.nupkg
-*.snupkg
 *.log
 
 # Local planning artifacts

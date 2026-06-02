@@ -1,114 +1,71 @@
 # willGo
 
-`willGo` is a Windows desktop assistant built with `.NET 8`, `WPF`, and `Windows Forms` interop.
-It supports screenshot-based sending, local image attachment, configurable model endpoints, and a phone-accessible LAN trigger page for remote desktop capture.
+`willGo` is a native macOS menu bar assistant written with Swift and AppKit.
+It keeps the first Windows version's core workflow: login validation, chat with configurable model endpoints, screenshot/image sending, primary/secondary model fallback, compact display mode, local settings persistence, and a LAN page for phone-triggered desktop capture.
+
+This repository no longer contains the Windows installer, WPF application, auto-update flow, update diagnostics, or historical Windows packaging files.
 
 ## Requirements
 
-- Windows 10/11
-- `.NET 8 SDK` for local build from source
-- Network access for first-time NuGet restore
-- `IExpress.exe` if you want to generate the single-file `Setup.exe`
+- macOS 13 Ventura or newer
+- Xcode Command Line Tools with Swift 5.9 or newer
+- Network access for login validation and model API requests
+- Screen Recording permission in macOS System Settings if you want desktop screenshots
 
 ## Repository Layout
 
 ```text
-src/FloatingDeskAssistant/   Main application source
-scripts/windows/            Build, package, install, repair, and uninstall scripts
-docs/                       Supporting release and planning notes
-QUICKSTART-WINDOWS.md       Windows usage and build shortcuts
+src/willGoMac/          Native macOS app source
+scripts/build-mac.sh    Builds a local unsigned willGo.app bundle
+dist/                   Rebuildable output, ignored by git
 ```
 
-## Clone
+## Build
 
-SSH is the most reliable option if you plan to push changes:
+From a Mac:
 
-```powershell
-git clone git@github.com:D1anskr/willGo.git
-cd willGo
+```bash
+bash scripts/build-mac.sh
 ```
 
-HTTPS clone also works for read-only or environments without SSH:
+The script builds a release executable with SwiftPM and writes:
 
-```powershell
-git clone https://github.com/D1anskr/willGo.git
-cd willGo
+```text
+dist/mac/willGo.app
 ```
 
-## Build From Source
+The generated app bundle is unsigned. For internal testing you can run it locally; for broader distribution, sign and notarize it with your Apple Developer identity.
 
-Build the app directly:
+## Run From Source
 
-```powershell
-dotnet build .\src\FloatingDeskAssistant\FloatingDeskAssistant.csproj -c Release
+```bash
+cd src/willGoMac
+swift run willGo
 ```
 
-Run the packaging flow:
+## Features
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-distribution.ps1
-```
+- Menu bar icon: `willGo` lives in the top macOS menu bar and can show/hide the chat window.
+- Login: validates the willGo user ID against the existing public validation endpoint and can remember the user ID.
+- Chat: sends text, attached images, or screenshots to the configured model.
+- Model routing: supports primary and secondary endpoints with retry and fallback.
+- API compatibility: supports OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Auto mode.
+- Screenshot sending: captures the full desktop or a dragged region and sends PNG image data to the model.
+- Local image attachment: sends selected image files as multimodal input.
+- Compact mode: keeps only the latest message visible for a small desktop footprint.
+- Phone trigger: starts a LAN HTTP page on port `8765` for phone-triggered desktop capture and preset prompts.
+- Settings: saves local config under `~/Library/Application Support/willGo/appsettings.user.json`.
 
-Build the single-file installer:
+## Removed From The Windows Version
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-setup-exe.ps1
-```
+- Windows batch files and PowerShell install/build scripts
+- WPF and Windows Forms source
+- `.NET`, NuGet, setup exe, zip release, update manifest, and update diagnostic code
+- Auto-update mechanism
 
-Convenience batch files are available in the repository root:
+## Notes
 
-- `Build-willGo-Release.bat`
-- `Build-willGo-Package.bat`
-- `Build-willGo-Setup.bat`
-- `Install-FloatingDeskAssistant.bat`
-- `Repair-FloatingDeskAssistant.bat`
-- `Uninstall-FloatingDeskAssistant.bat`
-
-See [`QUICKSTART-WINDOWS.md`](./QUICKSTART-WINDOWS.md) for the Windows-oriented workflow and output paths.
-
-## Release Output
-
-The release scripts generate versioned artifacts under `dist/`:
-
-- `dist\willGo-<version>-win-x64\`
-- `dist\willGo-<version>-win-x64.zip`
-- `dist\willGo-Setup-<version>-win-x64.exe`
-
-These artifacts are intentionally not tracked in git.
-
-## Daily Git Workflow
-
-Sync before starting work:
-
-```powershell
-git pull --rebase origin main
-```
-
-After editing files:
-
-```powershell
-git status
-git add .
-git commit -m "Describe your change"
-git push origin main
-```
-
-Useful notes:
-
-- `dist/`, `bin/`, and `obj/` are ignored because they are rebuildable outputs.
-- `build-release.ps1` updates `src/FloatingDeskAssistant/FloatingDeskAssistant.csproj` with a new version when you create a release. If you want that version bump to remain in source control, commit it.
-- If another machine cannot push over HTTPS, switch the remote to SSH:
-
-```powershell
-git remote set-url origin git@github.com:D1anskr/willGo.git
-```
-
-## Verification
-
-This repository was verified from a fresh clone with:
-
-```powershell
-dotnet build .\src\FloatingDeskAssistant\FloatingDeskAssistant.csproj -c Release
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-distribution.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-setup-exe.ps1
-```
+- If screenshot capture returns blank or fails, grant Screen Recording permission to `willGo` or to the terminal used to run `swift run`.
+- Region screenshot uses a full-screen translucent overlay: drag to select a region, release to send, or press Esc to cancel.
+- The phone trigger page is available from the menu item once the app starts, usually at `http://<your-lan-ip>:8765/`.
+- API keys are stored in the local JSON config for this first macOS version. If you need hardened storage later, move the keys to Keychain.
