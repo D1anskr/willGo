@@ -18,4 +18,7 @@ Notes
 -----
 - This package is self-contained for Windows x64 and does not require a separate .NET install.
 - User settings and logs stay in %LOCALAPPDATA%\FloatingDeskAssistant.
+- Speech uses Doubao streaming ASR 2.0 in the cloud; internet access and your own
+  Volcengine speech API credentials are required. Configure them in Settings.
+- No local ASR models are included. Personal API keys and recordings are excluded.
 - To remove the app later, use the Start menu uninstall shortcut or the Installed apps entry.

@@ -2,6 +2,10 @@ namespace FloatingDeskAssistant.Configuration;
 
 public sealed class AppConfig
 {
+    public bool RememberUserId { get; set; }
+    public string RememberedUserId { get; set; } = "";
+    public BattleConfig Battle { get; set; } = new();
+    public ModelRouteConfig ConversationModels { get; set; } = new();
     public ModelEndpointConfig Primary { get; set; } = new();
     public ModelEndpointConfig Secondary { get; set; } = new();
     public List<PromptPresetConfig> PromptPresets { get; set; } = CreateDefaultPromptPresets();
@@ -11,6 +15,7 @@ public sealed class AppConfig
     public double MessageFontSize { get; set; } = 14.0;
     public double BallOpacity { get; set; } = 0.28;
     public double WindowOpacity { get; set; } = 0.82;
+    public bool HideFromScreenCapture { get; set; } = true;
     public RemoteCaptureMode RemoteCaptureMode { get; set; } = RemoteCaptureMode.FullDesktop;
     public int RemoteCaptureRegionX { get; set; }
     public int RemoteCaptureRegionY { get; set; }
@@ -60,7 +65,11 @@ public sealed class AppConfig
     {
         return new AppConfig
         {
+            RememberUserId = RememberUserId,
+            RememberedUserId = RememberedUserId,
             Primary = Primary.Clone(),
+            Battle = Battle.Clone(),
+            ConversationModels = ConversationModels.Clone(),
             Secondary = Secondary.Clone(),
             PromptPresets = PromptPresets.Select(preset => preset.Clone()).ToList(),
             PreferredModel = PreferredModel,
@@ -69,6 +78,7 @@ public sealed class AppConfig
             MessageFontSize = MessageFontSize,
             BallOpacity = BallOpacity,
             WindowOpacity = WindowOpacity,
+            HideFromScreenCapture = HideFromScreenCapture,
             RemoteCaptureMode = RemoteCaptureMode,
             RemoteCaptureRegionX = RemoteCaptureRegionX,
             RemoteCaptureRegionY = RemoteCaptureRegionY,
@@ -83,61 +93,61 @@ public sealed class AppConfig
         [
             new PromptPresetConfig
             {
-                Title = "Producer Consumer",
+                Title = "生产者消费者",
                 Prompt = """
-Write a thread-safe producer consumer implementation.
+请实现一个线程安全的生产者消费者模型。
 
-Please answer in this structure:
-1. Restate the problem briefly
-2. Explain the synchronization strategy
-3. Give a correct implementation
-4. Explain time complexity and key concurrency pitfalls
-5. Mention when to use wait/notify or condition variables
+请按以下结构回答：
+1. 简要概括问题
+2. 解释线程同步策略
+3. 给出正确的代码实现
+4. 分析时间复杂度与并发陷阱
+5. 说明等待通知机制与条件变量的适用场景
 """,
                 IsEnabled = true
             },
             new PromptPresetConfig
             {
-                Title = "LRU Cache",
+                Title = "最近最少使用缓存",
                 Prompt = """
-Implement an LRU cache.
+请实现一个最近最少使用缓存。
 
-Please answer in this structure:
-1. Core idea
-2. Data structures used
-3. Complexity analysis
-4. Complete implementation
-5. Common edge cases
+请按以下结构回答：
+1. 核心思路
+2. 使用的数据结构
+3. 复杂度分析
+4. 完整代码实现
+5. 常见边界情况
 """,
                 IsEnabled = true
             },
             new PromptPresetConfig
             {
-                Title = "Binary Tree Level Order",
+                Title = "二叉树层序遍历",
                 Prompt = """
-Solve the binary tree level order traversal problem.
+请解决二叉树层序遍历问题。
 
-Please answer in this structure:
-1. Problem summary
-2. BFS approach
-3. Complexity analysis
-4. Complete implementation
-5. Edge cases
+请按以下结构回答：
+1. 问题概述
+2. 广度优先遍历思路
+3. 复杂度分析
+4. 完整代码实现
+5. 边界情况
 """,
                 IsEnabled = true
             },
             new PromptPresetConfig
             {
-                Title = "Thread Pool",
+                Title = "线程池设计",
                 Prompt = """
-Design a simple thread pool.
+请设计一个简单的线程池。
 
-Please answer in this structure:
-1. Key components
-2. Task queue and worker lifecycle
-3. Shutdown behavior
-4. Complete implementation
-5. Concurrency risks and tradeoffs
+请按以下结构回答：
+1. 核心组成
+2. 任务队列和工作线程的生命周期
+3. 关闭过程
+4. 完整代码实现
+5. 并发风险与取舍
 """,
                 IsEnabled = true
             }

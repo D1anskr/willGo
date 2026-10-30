@@ -9,16 +9,26 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\\willGo.ico</ApplicationIcon>
-    <Version>1.0.12</Version>
+    <Version>1.10.5</Version>
     <Product>willGo</Product>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="tmp\**\*.cs" />
+    <Compile Remove="Application/StreamingSpeechEngine.cs;Application/QwenAsrRecognizer.cs;Application/FunAsrRecognizer.cs;Application/SpeechFinalizationQueue.cs;Application/SpeechHotwords.cs;Application/SpeechTermProtection.cs;Application/SpeechTechnicalVocabulary.cs" />
     <EmbeddedResource Remove="tmp\**\*" />
     <None Remove="tmp\**\*" />
     <Page Remove="tmp\**\*" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="QRCoder" Version="1.7.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Markdig" Version="0.41.3" />
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/willGo.ico" />
+    <Content Include="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Licenses/NAudio-MIT.txt;Licenses/QRCoder-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Licenses/Markdig-BSD-2-Clause.txt;Licenses/AvalonEdit-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

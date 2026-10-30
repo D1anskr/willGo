@@ -16,6 +16,8 @@ namespace FloatingDeskAssistant.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
+    private const int MaxRemotePromptTextLength = 4000;
+
     private readonly IModelRouter _modelRouter;
     private readonly IScreenshotService _screenshotService;
     private readonly IAppConfigService _configService;
@@ -165,6 +167,55 @@ public sealed class MainViewModel : ObservableObject
 
     public double BallOpacity => _config.BallOpacity;
 
+    public AppConfig GetConfigSnapshot() => _config.Clone();
+
+    public async Task SetAnswerFontSizeAsync(double size)
+    {
+        _config.Battle.AnswerFontSize = double.IsFinite(size) ? Math.Clamp(size, 14, 28) : 18;
+        ConfigChanged?.Invoke(_config.Clone());
+        try { await _configService.SaveAsync(_config); }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to save answer font size.", ex);
+            StatusText = "答案字号保存失败，请在设置中重试。";
+        }
+    }
+
+    public async Task SetQuestionPaneWidthAsync(double width)
+    {
+        _config.Battle.QuestionPaneWidth = double.IsFinite(width) ? Math.Clamp(width, 150, 360) : 210;
+        ConfigChanged?.Invoke(_config.Clone());
+        try { await _configService.SaveAsync(_config); }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to save question pane width.", ex);
+            StatusText = "问题栏宽度保存失败，请重试。";
+        }
+    }
+
+    public async Task SetScreenshotQuestionRatioAsync(double ratio)
+    {
+        _config.Battle.ScreenshotQuestionRatio = double.IsFinite(ratio) ? Math.Clamp(ratio, .25, .65) : .38;
+        ConfigChanged?.Invoke(_config.Clone());
+        try { await _configService.SaveAsync(_config); }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to save screenshot question ratio.", ex);
+            StatusText = "题目分栏宽度保存失败，请重试。";
+        }
+    }
+
+    public void AdjustOpacity(double delta)
+    {
+        _config.BallOpacity = Math.Clamp(Math.Round(_config.BallOpacity + delta, 2), 0.05, 1.0);
+        _config.WindowOpacity = Math.Clamp(Math.Round(_config.WindowOpacity + delta, 2), 0.3, 1.0);
+        RaisePropertyChanged(nameof(BallOpacity));
+        RaisePropertyChanged(nameof(WindowOpacity));
+        RaisePropertyChanged(nameof(WindowBackdropBrush));
+        ConfigChanged?.Invoke(_config.Clone());
+        StatusText = $"Opacity: window {_config.WindowOpacity:P0}, ball {_config.BallOpacity:P0}";
+    }
+
     public bool IsCompactChatMode => _config.CompactChatMode;
 
     public CompactModeLevel CompactModeLevel => NormalizeCompactModeLevel(_config.CompactModeLevel);
@@ -227,8 +278,7 @@ public sealed class MainViewModel : ObservableObject
     {
         get
         {
-            var alpha = (byte)Math.Round(Math.Clamp(_config.WindowOpacity, 0.3, 1.0) * 255);
-            return new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha, 16, 16, 16));
+            return new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(16, 16, 16));
         }
     }
 
@@ -251,8 +301,12 @@ public sealed class MainViewModel : ObservableObject
         await SendInternalAsync(text, imageBytes, imageMediaType, userDisplayText: displayText);
     }
 
+    public Func<Task>? CaptureScreenshotOverride { get; set; }
+    public Action<string>? RemotePromptOverride { get; set; }
+
     public async Task CaptureAndSendAsync()
     {
+        if (CaptureScreenshotOverride is { } captureOverride) { await captureOverride(); return; }
         await CaptureScreenshotAndSendAsync(
             cancellationToken => _screenshotService.CaptureAsync(cancellationToken),
             "Select screenshot area...",
@@ -428,8 +482,32 @@ public sealed class MainViewModel : ObservableObject
             return new RemotePromptPresetTriggerResult(false, "Prompt preset is empty. Edit it in Settings first.");
         }
 
-        _ = SendInternalAsync(prompt, null, null);
+        if (RemotePromptOverride is { } submit) submit(prompt);
+        else _ = SendInternalAsync(prompt, null, null);
         return new RemotePromptPresetTriggerResult(true, $"Remote prompt preset accepted: {preset.Title.Trim()}");
+    }
+
+    public RemotePromptTextTriggerResult QueueRemotePromptText(string promptText)
+    {
+        if (IsBusy)
+        {
+            return new RemotePromptTextTriggerResult(false, "willGo is busy with the previous request. Please retry in a moment.");
+        }
+
+        var prompt = promptText.Trim();
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            return new RemotePromptTextTriggerResult(false, "Question is empty.");
+        }
+
+        if (prompt.Length > MaxRemotePromptTextLength)
+        {
+            return new RemotePromptTextTriggerResult(false, $"Question is too long. Keep it under {MaxRemotePromptTextLength} characters.");
+        }
+
+        if (RemotePromptOverride is { } submit) submit(prompt);
+        else _ = SendInternalAsync(prompt, null, null);
+        return new RemotePromptTextTriggerResult(true, "Remote question accepted. willGo is sending it now.");
     }
 
     public void SetRemoteCaptureAccess(IReadOnlyList<string> accessUrls)

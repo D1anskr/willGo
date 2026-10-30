@@ -7,28 +7,30 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        Title="willGo"
         ShowInTaskbar="False"
         Topmost="True">
     <Window.ContextMenu>
         <ContextMenu x:Name="BallContextMenu" Opened="BallContextMenu_OnOpened">
             <MenuItem x:Name="CompactModeMenuItem" Click="CompactModeMenuItem_OnClick" />
+            <MenuItem Header="战斗模式" Click="BattleMode_OnClick" />
             <MenuItem Header="退出" Click="ExitMenuItem_OnClick" />
         </ContextMenu>
     </Window.ContextMenu>
     <Grid>
         <Border x:Name="BallBorder"
                 CornerRadius="32"
-                Background="#F2FFFFFF"
+                Background="#FF292929"
                 BorderBrush="#66FFFFFF"
                 BorderThickness="1">
             <Grid>
                 <Ellipse Fill="#33FFFFFF" Margin="6" />
-                <TextBlock Text="AI"
+                <TextBlock x:Name="BallLabel" Text="AI"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            FontSize="15"
                            FontWeight="SemiBold"
-                           Foreground="#FF1C1C1C" />
+                           Foreground="White" />
             </Grid>
         </Border>
     </Grid>

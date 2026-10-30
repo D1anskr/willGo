@@ -1,6 +1,8 @@
 param(
     [string]$Runtime = 'win-x64',
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+    [string]$SevenZipPath = '',
+    [switch]$ReusePackage
 )
 
 Set-StrictMode -Version Latest
@@ -126,9 +128,12 @@ $payloadPath = Join-Path $stageRoot 'payload.zip'
 $sedPath = Join-Path $stageRoot 'willGo-setup.sed'
 
 Write-Step 'Building fresh package payload'
-& powershell -NoProfile -ExecutionPolicy Bypass -File $distributionScript -Runtime $Runtime -Configuration $Configuration -Zip
-if ((-not $?) -or $LASTEXITCODE -ne 0) {
-    throw "Package build failed with exit code $LASTEXITCODE"
+if (!$ReusePackage) {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $distributionScript -Runtime $Runtime -Configuration $Configuration -SevenZipPath $SevenZipPath -Zip
+    if ((-not $?) -or $LASTEXITCODE -ne 0) { throw "Package build failed with exit code $LASTEXITCODE" }
+}
+elseif (!(Test-Path $packageZip) -or !(Test-Path (Join-Path $packageRoot 'package-info.json'))) {
+    throw 'No completed package exists to reuse.'
 }
 
 if (-not (Get-Command iexpress.exe -ErrorAction SilentlyContinue)) {
@@ -144,13 +149,52 @@ Copy-Item -Path $packageZip -Destination $payloadPath -Force
 New-BootstrapScript -Path $bootstrapPath
 New-SedFile -Path $sedPath -StageDir $stageRoot -TargetPath $outputExe
 
+if ((Get-Item $packageZip).Length -gt 900MB) {
+    Write-Step 'Building large self-extracting setup'
+    if (!$SevenZipPath) { $SevenZipPath = (Get-Command 7z.exe -ErrorAction Stop).Source }
+    $module = Join-Path $PSScriptRoot 'installer/7zSD.sfx'
+    if (!(Test-Path $module) -or (Get-FileHash $module).Hash -ne '837A2D84A4D15366AF7A91670908AA29A958B721F40DB46DA734621F6234FEA2') {
+        throw 'Missing or invalid pinned LZMA SDK 26.04 installer module.'
+    }
+    Copy-Item (Join-Path $PSScriptRoot 'package/bootstrap-large.ps1') (Join-Path $stageRoot 'bootstrap-install.ps1')
+    $archive = Join-Path $stageRoot 'setup.7z'
+    Push-Location $stageRoot
+    try {
+        & $SevenZipPath a -t7z -mx=0 $archive 'bootstrap-install.ps1' 'payload.zip' -bso0 -bsp0
+        if ($LASTEXITCODE -ne 0) { throw 'Large setup archive creation failed.' }
+    }
+    finally { Pop-Location }
+    $config = [Text.Encoding]::UTF8.GetBytes(";!@Install@!UTF-8!`r`nTitle=`"willGo Setup`"`r`nDirectory=`"`"`r`nRunProgram=`"powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File bootstrap-install.ps1`"`r`n;!@InstallEnd@!`r`n")
+    $output = [IO.File]::Create($outputExe)
+    try {
+        $input = [IO.File]::OpenRead($module)
+        try { $input.CopyTo($output) } finally { $input.Dispose() }
+        $output.Write($config, 0, $config.Length)
+        $input = [IO.File]::OpenRead($archive)
+        try { $input.CopyTo($output) } finally { $input.Dispose() }
+    }
+    finally { $output.Dispose() }
+    & $SevenZipPath t $outputExe -bso0 -bsp0
+    if ($LASTEXITCODE -ne 0) { throw 'Large setup integrity check failed.' }
+    $resolvedStage = [IO.Path]::GetFullPath($stageRoot)
+    if (!$resolvedStage.StartsWith([IO.Path]::GetFullPath((Join-Path $repoRoot 'dist/setup-staging')) + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected staging path' }
+    Remove-Item -LiteralPath $resolvedStage -Recurse -Force
+    Write-Host "Setup executable created: $outputExe" -ForegroundColor Green
+    exit 0
+}
+
 if (Test-Path $outputExe) {
     Remove-Item -Path $outputExe -Force
 }
 
 Write-Step 'Building single-file Setup.exe'
-& iexpress.exe /N $sedPath | Out-Null
-if ((-not $?) -or -not (Test-Path $outputExe)) {
+$iexpressPath = Join-Path $env:WINDIR 'SysWOW64/iexpress.exe'
+if (!(Test-Path $iexpressPath)) { $iexpressPath = (Get-Command iexpress.exe).Source }
+$setupBuild = Start-Process -FilePath $iexpressPath -ArgumentList @('/N', '/Q', 'willGo-setup.sed') `
+    -WorkingDirectory $stageRoot -WindowStyle Hidden -Wait -PassThru `
+    -RedirectStandardOutput (Join-Path $stageRoot 'build.stdout.log') `
+    -RedirectStandardError (Join-Path $stageRoot 'build.stderr.log')
+if ($setupBuild.ExitCode -ne 0 -or -not (Test-Path $outputExe)) {
     throw 'IExpress failed to create the setup executable.'
 }
 

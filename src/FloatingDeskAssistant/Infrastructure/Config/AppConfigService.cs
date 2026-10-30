@@ -15,6 +15,7 @@ public sealed class AppConfigService : IAppConfigService
     private readonly ApiKeyProtector _protector;
     private readonly ILoggerService _logger;
     private readonly string _filePath;
+    private readonly SemaphoreSlim _saveGate = new(1, 1);
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         WriteIndented = true,
@@ -52,6 +53,11 @@ public sealed class AppConfigService : IAppConfigService
             }
 
             var config = CreateDefault();
+            config.RememberUserId = persisted.RememberUserId;
+            config.RememberedUserId = persisted.RememberUserId ? (persisted.RememberedUserId ?? "").Trim() : "";
+            config.Battle = persisted.Battle?.Clone() ?? new BattleConfig();
+            config.Battle.Speech.ApiKey = _protector.Unprotect(persisted.SpeechApiKeyProtected);
+            config.Battle.Speech.AccessToken = _protector.Unprotect(persisted.SpeechAccessTokenProtected);
             var primary = persisted.Primary ?? new ModelEndpointConfig();
             var secondary = persisted.Secondary ?? new ModelEndpointConfig();
             config.Primary.BaseUrl = string.IsNullOrWhiteSpace(primary.BaseUrl) ? config.Primary.BaseUrl : primary.BaseUrl;
@@ -74,11 +80,18 @@ public sealed class AppConfigService : IAppConfigService
             }
 
             config.PreferredModel = persisted.PreferredModel;
+            config.ConversationModels = persisted.ConversationModels?.Clone() ?? ModelRouteConfig.FromScreenshotConfig(config);
+            if (persisted.ConversationModels is not null)
+            {
+                config.ConversationModels.Primary.ApiKey = _protector.Unprotect(persisted.ConversationPrimaryApiKeyProtected);
+                config.ConversationModels.Secondary.ApiKey = _protector.Unprotect(persisted.ConversationSecondaryApiKeyProtected);
+            }
             config.CompactChatMode = persisted.CompactChatMode;
             config.CompactModeLevel = NormalizeCompactModeLevel(persisted.CompactModeLevel);
             config.MessageFontSize = ClampMessageFontSize(persisted.MessageFontSize, DefaultMessageFontSize);
             config.BallOpacity = ClampOpacity(persisted.BallOpacity, 0.05, 1.0, DefaultBallOpacity);
             config.WindowOpacity = ClampOpacity(persisted.WindowOpacity, 0.3, 1.0, DefaultWindowOpacity);
+            config.HideFromScreenCapture = persisted.HideFromScreenCapture;
             config.RemoteCaptureMode = NormalizeRemoteCaptureMode(persisted.RemoteCaptureMode);
             config.RemoteCaptureRegionX = ClampCoordinate(persisted.RemoteCaptureRegionX);
             config.RemoteCaptureRegionY = ClampCoordinate(persisted.RemoteCaptureRegionY);
@@ -95,8 +108,30 @@ public sealed class AppConfigService : IAppConfigService
 
     public async Task SaveAsync(AppConfig config, CancellationToken cancellationToken = default)
     {
+        var snapshot = config.Clone();
+        await _saveGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await SaveCoreAsync(snapshot, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _saveGate.Release();
+        }
+    }
+
+    private async Task SaveCoreAsync(AppConfig config, CancellationToken cancellationToken)
+    {
         var persisted = new PersistedAppConfig
         {
+            RememberUserId = config.RememberUserId,
+            RememberedUserId = config.RememberUserId ? config.RememberedUserId.Trim() : "",
+            Battle = config.Battle.Clone(),
+            SpeechApiKeyProtected = _protector.Protect(config.Battle.Speech.ApiKey),
+            SpeechAccessTokenProtected = _protector.Protect(config.Battle.Speech.AccessToken),
+            ConversationModels = config.ConversationModels.Clone(),
+            ConversationPrimaryApiKeyProtected = _protector.Protect(config.ConversationModels.Primary.ApiKey),
+            ConversationSecondaryApiKeyProtected = _protector.Protect(config.ConversationModels.Secondary.ApiKey),
             Primary = new ModelEndpointConfig { Name = "Primary", Protocol = config.Primary.Protocol, BaseUrl = config.Primary.BaseUrl, Model = config.Primary.Model, SystemPrompt = config.Primary.SystemPrompt, TimeoutSeconds = Math.Max(1, config.Primary.TimeoutSeconds), MaxRetries = Math.Max(1, config.Primary.MaxRetries) },
             Secondary = new ModelEndpointConfig { Name = "Secondary", Protocol = config.Secondary.Protocol, BaseUrl = config.Secondary.BaseUrl, Model = config.Secondary.Model, SystemPrompt = config.Secondary.SystemPrompt, TimeoutSeconds = Math.Max(1, config.Secondary.TimeoutSeconds), MaxRetries = Math.Max(1, config.Secondary.MaxRetries) },
             PromptPresets = NormalizePromptPresets(config.PromptPresets),
@@ -108,6 +143,7 @@ public sealed class AppConfigService : IAppConfigService
             SecondaryApiKeyProtected = _protector.Protect(config.Secondary.ApiKey),
             BallOpacity = ClampOpacity(config.BallOpacity, 0.05, 1.0, DefaultBallOpacity),
             WindowOpacity = ClampOpacity(config.WindowOpacity, 0.3, 1.0, DefaultWindowOpacity),
+            HideFromScreenCapture = config.HideFromScreenCapture,
             RemoteCaptureMode = NormalizeRemoteCaptureMode(config.RemoteCaptureMode),
             RemoteCaptureRegionX = ClampCoordinate(config.RemoteCaptureRegionX),
             RemoteCaptureRegionY = ClampCoordinate(config.RemoteCaptureRegionY),
@@ -115,6 +151,10 @@ public sealed class AppConfigService : IAppConfigService
             RemoteCaptureRegionHeight = ClampRegionSize(config.RemoteCaptureRegionHeight)
         };
 
+        persisted.ConversationModels.Primary.ApiKey = string.Empty;
+        persisted.ConversationModels.Secondary.ApiKey = string.Empty;
+        persisted.Battle.Speech.ApiKey = string.Empty;
+        persisted.Battle.Speech.AccessToken = string.Empty;
         var tempFilePath = _filePath + ".tmp";
         Exception? lastException = null;
         for (var attempt = 1; attempt <= SaveRetryCount; attempt++)

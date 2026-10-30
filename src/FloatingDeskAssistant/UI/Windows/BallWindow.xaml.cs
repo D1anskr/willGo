@@ -4,11 +4,17 @@ using System.Windows.Input;
 using System.Windows.Media;
 using FloatingDeskAssistant.Application;
 using FloatingDeskAssistant.ViewModels;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 
 namespace FloatingDeskAssistant.UI.Windows;
 
 public partial class BallWindow : Window
 {
+    public event Action? BattleModeRequested;
+    public event Action? ExitRequested;
+    public Action? ToggleWorkspace { get; set; }
+    private void BattleMode_OnClick(object sender, RoutedEventArgs e) => BattleModeRequested?.Invoke();
     private const int DragThresholdPixels = 2;
     private const long ChatRepositionIntervalMs = 16;
 
@@ -23,10 +29,15 @@ public partial class BallWindow : Window
     public BallWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        WindowCaptureProtection.Attach(this, 32);
         _viewModel = viewModel;
         DataContext = viewModel;
+        WindowInteraction.Changed += OnInteractionChanged;
+        Closed += (_, _) => WindowInteraction.Changed -= OnInteractionChanged;
+        OnInteractionChanged(WindowInteraction.IsClickThrough);
 
         Loaded += OnLoaded;
+        SourceInitialized += (_, _) => UpdateOpacity(_viewModel.BallOpacity);
         MouseLeftButtonDown += OnMouseLeftButtonDown;
         MouseMove += OnMouseMove;
         MouseLeftButtonUp += OnMouseLeftButtonUp;
@@ -104,7 +115,8 @@ public partial class BallWindow : Window
             return;
         }
 
-        _windowCoordinator?.ToggleChat();
+        if (ToggleWorkspace is not null) ToggleWorkspace();
+        else _windowCoordinator?.ToggleChat();
     }
 
     private void OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -136,7 +148,8 @@ public partial class BallWindow : Window
 
     private void ExitMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        System.Windows.Application.Current.Shutdown();
+        if (ExitRequested is not null) ExitRequested();
+        else System.Windows.Application.Current.Shutdown();
     }
 
     private void UpdateBallContextMenu()
@@ -170,6 +183,15 @@ public partial class BallWindow : Window
 
     private void UpdateOpacity(double value)
     {
-        Opacity = Math.Clamp(value, 0.05, 1.0);
+        WindowCaptureProtection.SetOpacity(this, Math.Clamp(value, 0.05, 1.0));
+    }
+
+    private void OnInteractionChanged(bool clickThrough)
+    {
+        if (IsMouseCaptured) ReleaseMouseCapture();
+        _isDragging = false;
+        BallBorder.Background = clickThrough ? Brushes.White : new SolidColorBrush(Color.FromRgb(41, 41, 41));
+        BallLabel.Foreground = clickThrough ? Brushes.Black : Brushes.White;
+        UpdateOpacity(_viewModel.BallOpacity);
     }
 }

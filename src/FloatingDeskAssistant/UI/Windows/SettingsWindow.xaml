@@ -1,264 +1,276 @@
 <Window x:Class="FloatingDeskAssistant.UI.Windows.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings"
-        Width="760"
-        Height="760"
-        WindowStartupLocation="CenterScreen"
-        Background="#FF1E1E1E">
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="设置" ShowInTaskbar="False" Width="920" Height="760" MinWidth="800" MinHeight="560"
+        WindowStyle="None" ResizeMode="CanResize" WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" Background="White" Foreground="#FF202428"
+        FontFamily="Microsoft YaHei UI,Microsoft YaHei,Segoe UI" FontSize="13">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" CornerRadius="16" GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/LightTheme.xaml" /></ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <Style TargetType="TextBox" BasedOn="{StaticResource LightTextBox}">
+                <Setter Property="MinHeight" Value="34" /><Setter Property="VerticalContentAlignment" Value="Center" />
+            </Style>
+            <Style TargetType="PasswordBox">
+                <Setter Property="Foreground" Value="#FF202428" /><Setter Property="Background" Value="White" />
+                <Setter Property="CaretBrush" Value="#FF202428" /><Setter Property="BorderBrush" Value="#FFD8DEE2" />
+                <Setter Property="BorderThickness" Value="1" /><Setter Property="Padding" Value="8,6" /><Setter Property="MinHeight" Value="34" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="PasswordBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="PasswordBorder" Property="BorderBrush" Value="#FF6E9B82" /></Trigger></ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style TargetType="ComboBox">
+                <Setter Property="Foreground" Value="#FF202428" /><Setter Property="Background" Value="White" />
+                <Setter Property="BorderBrush" Value="#FFD8DEE2" /><Setter Property="MinHeight" Value="34" />
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press">
+                            <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="SelectBorder" Background="White" BorderBrush="#FFD8DEE2" BorderThickness="1" CornerRadius="6">
+                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#FF616B73" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                </Border>
+                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SelectBorder" Property="BorderBrush" Value="#FF6E9B82" /></Trigger></ControlTemplate.Triggers>
+                            </ControlTemplate></ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                          IsHitTestVisible="False" ClipToBounds="True" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,0,34,0" />
+                        <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="False" Focusable="False">
+                            <Border Background="White" BorderBrush="#FFD8DEE2" BorderThickness="1" CornerRadius="6" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}" CanContentScroll="True" VerticalScrollBarVisibility="Auto"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" /></ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style TargetType="ComboBoxItem">
+                <Setter Property="Padding" Value="10,8" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="ChoiceBorder" Padding="{TemplateBinding Padding}" Background="White"><ContentPresenter /></Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ChoiceBorder" Property="Background" Value="#FFEDF3EF" /></Trigger>
+                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="ChoiceBorder" Property="Background" Value="#FFE6F0E9" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style TargetType="GroupBox">
+                <Setter Property="Margin" Value="0,0,0,24" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GroupBox">
+                    <StackPanel>
+                        <Border BorderBrush="#FFE1E6E3" BorderThickness="0,0,0,1" Padding="0,0,0,10" Margin="0,0,0,14">
+                            <ContentPresenter ContentSource="Header" TextElement.FontSize="14" TextElement.FontWeight="SemiBold" />
+                        </Border><ContentPresenter />
+                    </StackPanel>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style TargetType="TabControl">
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" BorderBrush="#FFE1E6E3" BorderThickness="0,0,0,1" Padding="0,0,0,10" Margin="0,0,0,18"><TabPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1" /></Border>
+                        <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" />
+                    </DockPanel>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style TargetType="TabItem">
+                <Setter Property="Padding" Value="18,9" /><Setter Property="Margin" Value="0,0,6,0" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
+                    <Border x:Name="TabSurface" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter x:Name="TabHeader" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="#FF202428" TextElement.FontWeight="Normal" /></Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="#FFE6F0E9" /><Setter TargetName="TabHeader" Property="TextElement.Foreground" Value="#FF245A3D" /><Setter TargetName="TabHeader" Property="TextElement.FontWeight" Value="SemiBold" /></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="#FFEDF3EF" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabSurface" Property="BorderBrush" Value="#FF6E9B82" /><Setter TargetName="TabSurface" Property="BorderThickness" Value="1" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+            <Style x:Key="SettingsIconButton" TargetType="Button" BasedOn="{StaticResource LightButton}">
+                <Setter Property="FontFamily" Value="Segoe MDL2 Assets" /><Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" /><Setter Property="Padding" Value="0" />
+            </Style>
+            <Style x:Key="GuideText" TargetType="TextBlock">
+                <Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="14" />
+                <Setter Property="LineHeight" Value="24" /><Setter Property="Margin" Value="0,0,0,10" />
+            </Style>
+            <DataTemplate x:Key="EndpointEditor">
+                <StackPanel>
+                    <TextBlock Text="接口地址" /><TextBox Margin="0,5,0,12" Text="{Binding BaseUrl, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="接口密钥" /><TextBox Margin="0,5,0,12" Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="接口协议" /><ComboBox Margin="0,5,0,12" DisplayMemberPath="Label" SelectedValuePath="Value" ItemsSource="{Binding DataContext.ProtocolOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedValue="{Binding Protocol}" />
+                    <TextBlock Text="模型名称" /><TextBox Margin="0,5,0,12" Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}" />
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="请求超时（秒）" /><TextBox Margin="0,5,0,0" Text="{Binding TimeoutSeconds, ValidatesOnExceptions=True}" /></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="最多重试次数" /><TextBox Margin="0,5,0,0" Text="{Binding MaxRetries, ValidatesOnExceptions=True}" /></StackPanel>
+                    </Grid>
+                </StackPanel>
+            </DataTemplate>
+        </ResourceDictionary>
     </Window.Resources>
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <ScrollViewer Grid.Row="0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <GroupBox Header="Primary" Foreground="White" Margin="0,0,8,0">
-                    <Grid Margin="12">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="BaseUrl" Foreground="White" />
-                        <TextBox Grid.Row="1" Margin="0,4,0,8" Text="{Binding EditableConfig.Primary.BaseUrl}" />
-                        <TextBlock Grid.Row="2" Text="ApiKey" Foreground="White" />
-                        <TextBox Grid.Row="3" Margin="0,4,0,8" Text="{Binding EditableConfig.Primary.ApiKey}" />
-                        <StackPanel Grid.Row="4">
-                            <TextBlock Text="Protocol" Foreground="White" />
-                            <ComboBox Margin="0,4,0,8" ItemsSource="{Binding ProtocolOptions}" SelectedItem="{Binding EditableConfig.Primary.Protocol}" />
-                            <TextBlock Text="Model" Foreground="White" />
-                            <TextBox Margin="0,4,0,8" Text="{Binding EditableConfig.Primary.Model}" />
-                            <TextBlock Text="SystemPrompt" Foreground="White" />
-                            <TextBox Margin="0,4,0,8" Height="90" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding EditableConfig.Primary.SystemPrompt}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Timeout(s)" Foreground="White" />
-                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Primary.TimeoutSeconds}" />
+    <Border x:Name="SettingsFrame" CornerRadius="16" Background="White" BorderBrush="#FFD4DDD7" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Border Padding="22,14" BorderBrush="#FFE1E6E3" BorderThickness="0,0,0,1" MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
+                <Grid><TextBlock Text="设置" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" /><Button HorizontalAlignment="Right" Style="{StaticResource SettingsIconButton}" Content="&#xE711;" ToolTip="关闭设置" Click="CancelButton_OnClick" /></Grid>
+            </Border>
+            <TabControl x:Name="SettingsTabs" Grid.Row="1" Margin="22,18,22,0" SelectedIndex="0">
+                <TabItem x:Name="UserGuideTab" Header="使用说明">
+                    <ScrollViewer x:Name="UserGuideScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="0,0,16,0">
+                            <GroupBox Header="快捷键速查">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GuideText}" Foreground="#FF616B73" Text="前五项为全局快捷键：登录通过后无需点击 willGo，鼠标穿透时仍可使用。最后两项在输入框、截图或设置等对应位置生效。" />
+                                    <Grid x:Name="GuideShortcuts" Margin="0,0,0,10">
+                                        <Grid.Resources>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource GuideText}"><Setter Property="Margin" Value="0,0,12,10" /></Style>
+                                        </Grid.Resources>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <TextBlock FontWeight="SemiBold" Text="Ctrl + 1" /><TextBlock Grid.Column="1" Text="切换鼠标穿透。白色指示灯：鼠标直接操作下方桌面，无法点击 willGo（包括设置）；灰黑色：可点击。再按一次恢复。" />
+                                        <TextBlock Grid.Row="1" FontWeight="SemiBold" Text="Ctrl + Shift + S" /><TextBlock Grid.Row="1" Grid.Column="1" Text="按设置中保存的截图范围直接截图并提问，无需重新框选或确认，也无需开始语音识别。" />
+                                        <TextBlock Grid.Row="2" FontWeight="SemiBold" Text="Ctrl + Shift + 左 / 右" /><TextBlock Grid.Row="2" Grid.Column="1" Text="左键更透明，右键更不透明；每次调整 5%，范围 30% 至 100%。" />
+                                        <TextBlock Grid.Row="3" FontWeight="SemiBold" Text="Ctrl + Shift + 上 / 下" /><TextBlock Grid.Row="3" Grid.Column="1" Text="切换左侧问题。上键查看上方较新的问题，下键查看下方较旧的问题；新问题始终置顶。" />
+                                        <TextBlock Grid.Row="4" FontWeight="SemiBold" Text="Ctrl + 上 / 下" /><TextBlock Grid.Row="4" Grid.Column="1" Text="向上 / 向下滚动当前问题的答案；鼠标穿透时也可翻阅。窗口需处于显示状态。" />
+                                        <TextBlock Grid.Row="5" FontWeight="SemiBold" Text="Enter / Shift + Enter" /><TextBlock Grid.Row="5" Grid.Column="1" Text="在底部输入框：回车发送，Shift + 回车换行。中文输入法确认候选词时不会直接发送。" />
+                                        <TextBlock Grid.Row="6" FontWeight="SemiBold" Text="Enter / Esc / 左右方向键" /><TextBlock Grid.Row="6" Grid.Column="1" Text="设置中选择截图区域时：回车或右键确认，Esc 取消。设置窗口内 Esc 取消修改；分隔条获得焦点后，左右方向键调整两栏宽度。" />
+                                    </Grid>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>穿透与透明度相互独立。</Bold>白色指示灯表示鼠标穿透，不代表窗口消失。不能点击时先按 Ctrl + 1；快捷键无响应时检查是否被其他软件占用。</TextBlock>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="MaxRetries" Foreground="White" />
-                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Primary.MaxRetries}" />
+                            </GroupBox>
+                            <GroupBox Header="开始使用">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GuideText}" Text="1. 登录通过后进入主窗口。首次使用先配置对话模型、截图模型和豆包语音密钥，测试连接后保存设置。" />
+                                    <TextBlock Style="{StaticResource GuideText}"><Run Text="2. 点击“开始战斗”开启语音识别。录制弹窗选择“是”：录音并记录文字；选择“否”：只记录文字；选择“取消”：本次不启动。点击“结束战斗”停止并保存。本软件打开后不会自动采集。" /></TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>扬声器（对方）</Bold>识别到的每句完整话自动提问；<Bold>麦克风（我）</Bold>只有包含任一触发词的话才自动提问，例如“我想一想什么是 Kafka”。手动输入、区域截图和手机截图也各自生成一道新问题。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}" Text="3. 左侧单行标题选择历史问题，右侧查看完整问题与答案；拖动中间分隔条调整宽度。答案工具栏可调字号；顶部可取消全部回答、清空本次记录、打开设置或收起窗口。" />
+                                    <TextBlock Style="{StaticResource GuideText}" Text="4. 手机与电脑接入可互通的局域网，点击顶部手机图标扫码，打开手机页面进行截图提问或发送预设问题。" />
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>历史战斗：</Bold>顶部“历史战斗”读取语音设置中的保存目录，按时间倒序列出录音和文字文档。可直接播放、暂停、拖动进度、调音量或打开文档；刷新按钮重新读取文件。语音采集中暂停历史录音播放，避免重复识别。没有录音的纯文字记录也会保留在列表中。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>找回窗口：</Bold>willGo 不在底部任务栏显示。收起后双击右下角通知区域图标恢复；图标可能在“显示隐藏的图标”中。开始 / 结束战斗目前使用按钮操作。</TextBlock>
                                 </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="模型设置 · 截图与对话分开配置">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>截图模型：</Bold>处理电脑和手机截图，必须支持图片输入。<Bold>对话模型：</Bold>处理语音和手动文字提问，建议选择响应快、擅长中英文技术问答的模型。两类配置相互独立。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>首选模型、主模型、备用模型：</Bold>先请求所选的首选模型，失败后尝试另一组。建议主模型用于日常问答，备用填写可用的替代服务。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>接口地址：</Bold>填写服务商提供的兼容接口地址。<Bold>接口密钥：</Bold>填写该模型服务的密钥，与豆包语音密钥分别配置。<Bold>模型名称：</Bold>照服务商提供的模型标识原样填写。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>接口协议：</Bold>通常选“自动识别”；服务商有明确要求时选择对应的聊天补全、响应或消息协议。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>请求超时（秒）：</Bold>建议先用 30，复杂或较长回答可用 60。<Bold>最多重试次数：</Bold>当前按包含首次请求的总尝试次数计算，建议 1 至 2，避免失败后等待过久。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>截图提示词：</Bold>决定如何理解图片和组织答案，主模型和备用模型分别填写。建议写清题型、回答语言及是否需要代码。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>截图范围：</Bold>快捷键、顶部截图按钮和手机共用此设置。固定题目位置建议选“指定区域”，点击“选择区域”框选并确认，再保存设置；之后按 Ctrl + Shift + S 即可直接截图提问。“整个桌面”会直接截取全桌面；“清除区域”移除保存的范围。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>截图搜题：</Bold>截图模型先提取题目，再生成答案，共两个阶段。题目与答案独立滚动，中间分隔条可拖动并记住宽度；原图可在题目下方展开。重新回答复用已提取的题目，题目右上角按钮重新识别原图。编程答案包含思路、复杂度与代码，代码块支持高亮、行号、选择和复制。</TextBlock>
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="语音设置 · 识别、记录与提问规则">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>语音接口密钥：</Bold>填写火山引擎豆包语音识别服务密钥，需联网使用。“测试连接”检查服务连通与鉴权；“开通服务”“创建密钥”打开对应控制台。<Bold>旧版服务凭证：</Bold>仅使用旧鉴权方式时填写应用标识和访问令牌，使用新密钥时无需填写。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>麦克风（我）、扬声器（对方）：</Bold>建议选“系统默认”，每次开始采集时使用电脑当前的多媒体默认输入 / 输出设备；也可固定选择耳机等设备。采集中切换系统设备后，需结束并重新开始战斗。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>录音与文字记录保存目录：</Bold>用文件夹按钮选择可写目录。每次会话生成一份持续追加的文字记录，按时间标记“我 / 对方”，包括没有触发提问的麦克风话语。选择录音时另存一个立体声文件，左声道为麦克风、右声道为扬声器，保留停顿。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}" Text="文件按开始时间命名：willGo-年月日时分秒，例如 willGo-20261018143005.md；录音为同名 .wav。重名时自动加序号。选择不录音也会保存文字。" />
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>断句停顿（秒）：</Bold>范围 0.6 至 2.5，建议先用 1.1。句子或英文术语经常被截断时适当调大；想更快提交可调小，但可能拆成短句。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>对话提示词：</Bold>决定语音和手动文字回答的风格，建议“先给结论，再分点解释，保留英文技术名词”；截图使用模型页里的截图提示词。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>上下文提示词：</Bold>每次对话带上前两轮问题与答案，结合岗位和技术语境理解可能的识别错误。建议保留默认内容，只补充具体岗位或技术栈。连续问题依次回答；清空问题会重置上下文，原始转写不改写。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>过滤扬声器回声：</Bold>默认开启，下次开始战斗生效。麦克风最终文字等待约 1.5 秒，与同时段的扬声器文字核对后再记录和提问；扬声器问题立即提交。若正常说话被误过滤可关闭；较短或差异过大的回声仍可能保留，外放严重时建议配合耳机。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>我的触发词：</Bold>每行一个，命中任意一个才把我的话提交给对话模型。建议保留“我想一想”“让我想想”等不易误触的短语；这不是识别热词，不负责纠正识别文字。扬声器不受此项限制。</TextBlock>
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="快捷提问 · 手机预设问题">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>标题：</Bold>手机页面显示的简短名称。<Bold>问题内容：</Bold>点击后发送的实际提问，建议保存常用的追问，例如“请补充具体示例”。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>启用：</Bold>控制是否出现在手机页面。“添加问题”新增，上下箭头调整顺序，删除图标移除。标题和内容都填写后再保存；空白条目不会保存。</TextBlock>
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="界面设置 · 显示与阅读">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>在截图与屏幕共享中隐藏窗口：</Bold>需要共享隐藏时开启，本机仍正常显示。Windows 10 2004 及以上与 Windows 11 支持。共享画面隐藏与共享候选列表是两回事；部分会议软件仍可能列出名称和图标，使用前请确认实际效果。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>窗口不透明度：</Bold>30% 至 100%；建议阅读时 90% 至 100%，100% 为实白底。用 Ctrl + Shift + 左 / 右随时调整；调透明不会开启鼠标穿透。</TextBlock>
+                                    <TextBlock Style="{StaticResource GuideText}"><Bold>答案字号：</Bold>14 至 28，建议先用 18 至 20，再按屏幕大小调整；答案区的字号按钮也可直接调整。</TextBlock>
+                                </StackPanel>
+                            </GroupBox>
+                            <TextBlock x:Name="GuideSaveNote" Style="{StaticResource GuideText}" Foreground="#FF616B73" Margin="0,0,0,18"><Bold>保存与取消：</Bold>“保存设置”应用修改；“取消”或 Esc 放弃本次修改。“恢复默认”先重置当前编辑内容，保存后才生效，使用前留意密钥和自定义提示词。</TextBlock>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem x:Name="ModelsTab" Header="模型设置">
+                    <TabControl x:Name="ModelTabs">
+                        <TabItem x:Name="ScreenshotModelTab" Header="截图模型">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><TextBlock Text="首选模型" VerticalAlignment="Center" /><ComboBox x:Name="ScreenshotPreferredModel" Width="170" Margin="14,0,0,0" ItemsSource="{Binding PreferredModelOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding EditableConfig.PreferredModel}" /></StackPanel>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <GroupBox Header="主模型"><StackPanel><ContentControl Content="{Binding EditableConfig.Primary}" ContentTemplate="{StaticResource EndpointEditor}" /><TextBlock Text="截图提示词" Margin="0,14,0,5" /><TextBox Height="96" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding EditableConfig.Primary.SystemPrompt, UpdateSourceTrigger=PropertyChanged}" /></StackPanel></GroupBox>
+                                    <GroupBox Grid.Column="2" Header="备用模型"><StackPanel><ContentControl Content="{Binding EditableConfig.Secondary}" ContentTemplate="{StaticResource EndpointEditor}" /><TextBlock Text="截图提示词" Margin="0,14,0,5" /><TextBox Height="96" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding EditableConfig.Secondary.SystemPrompt, UpdateSourceTrigger=PropertyChanged}" /></StackPanel></GroupBox>
+                                </Grid>
+                                <GroupBox Header="截图范围（快捷键与手机共用）"><StackPanel>
+                                    <TextBlock Text="截图范围" /><ComboBox x:Name="RemoteCaptureModeBox" Width="230" HorizontalAlignment="Left" Margin="0,5,0,12" DisplayMemberPath="Label" SelectedValuePath="Value" ItemsSource="{Binding RemoteCaptureModeOptions}" SelectedValue="{Binding EditableConfig.RemoteCaptureMode}" />
+                                    <WrapPanel><Button Content="选择区域" Click="ChooseRemoteRegionButton_OnClick" /><Button Margin="8,0,0,0" Content="清除区域" Click="ClearRemoteRegionButton_OnClick" /></WrapPanel><TextBlock Margin="0,12,0,0" Foreground="#FF616B73" TextWrapping="Wrap" Text="{Binding RemoteCaptureRegionSummary}" />
+                                </StackPanel></GroupBox>
+                            </StackPanel></ScrollViewer>
+                        </TabItem>
+                        <TabItem x:Name="ConversationModelTab" Header="对话模型">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><TextBlock Text="首选模型" VerticalAlignment="Center" /><ComboBox x:Name="ConversationPreferredModel" Width="170" Margin="14,0,0,0" ItemsSource="{Binding PreferredModelOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding EditableConfig.ConversationModels.PreferredModel}" /></StackPanel>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <GroupBox Header="主模型"><ContentControl Content="{Binding EditableConfig.ConversationModels.Primary}" ContentTemplate="{StaticResource EndpointEditor}" /></GroupBox>
+                                    <GroupBox Grid.Column="2" Header="备用模型"><ContentControl Content="{Binding EditableConfig.ConversationModels.Secondary}" ContentTemplate="{StaticResource EndpointEditor}" /></GroupBox>
+                                </Grid>
+                            </StackPanel></ScrollViewer>
+                        </TabItem>
+                    </TabControl>
+                </TabItem>
+                <TabItem x:Name="SpeechTab" Header="语音设置">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">
+                        <GroupBox x:Name="SpeechServiceSection" Header="豆包云端语音识别"><StackPanel>
+                            <TextBlock Text="语音接口密钥" /><PasswordBox x:Name="SpeechApiKeyBox" Margin="0,5,0,12" PasswordChanged="SpeechApiKey_OnChanged" AutomationProperties.Name="语音接口密钥" />
+                            <Expander Header="旧版服务凭证" Margin="0,0,0,12"><StackPanel Margin="0,10,0,0"><TextBlock Text="应用标识" /><TextBox x:Name="SpeechAppIdBox" Margin="0,5,0,12" Text="{Binding EditableConfig.Battle.Speech.AppId, UpdateSourceTrigger=PropertyChanged}" /><TextBlock Text="访问令牌" /><PasswordBox x:Name="SpeechAccessTokenBox" Margin="0,5,0,0" PasswordChanged="SpeechAccessToken_OnChanged" /></StackPanel></Expander>
+                            <WrapPanel><Button x:Name="TestSpeechConnectionButton" Content="测试连接" Click="TestSpeechConnection_OnClick" /><Button Margin="8,0,0,0" Content="开通服务" Click="OpenSpeechConsole_OnClick" /><Button Margin="8,0,0,0" Content="创建密钥" Click="OpenSpeechKeys_OnClick" /></WrapPanel><TextBlock x:Name="SpeechConnectionStatus" TextWrapping="Wrap" Foreground="#FF286445" Margin="0,10,0,0" />
+                        </StackPanel></GroupBox>
+                        <GroupBox Header="音频采集与记录"><StackPanel>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="麦克风（我）" /><ComboBox x:Name="MicrophoneBox" Margin="0,5,0,14" ItemsSource="{Binding Microphones}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding EditableConfig.Battle.MicrophoneDeviceId}" /></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Text="扬声器（对方）" /><ComboBox x:Name="SpeakerBox" Margin="0,5,0,14" ItemsSource="{Binding Speakers}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding EditableConfig.Battle.SpeakerDeviceId}" /></StackPanel>
                             </Grid>
-                        </StackPanel>
-                    </Grid>
-                </GroupBox>
-
-                <GroupBox Grid.Column="1" Header="Secondary" Foreground="White" Margin="8,0,0,0">
-                    <Grid Margin="12">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="BaseUrl" Foreground="White" />
-                        <TextBox Grid.Row="1" Margin="0,4,0,8" Text="{Binding EditableConfig.Secondary.BaseUrl}" />
-                        <TextBlock Grid.Row="2" Text="ApiKey" Foreground="White" />
-                        <TextBox Grid.Row="3" Margin="0,4,0,8" Text="{Binding EditableConfig.Secondary.ApiKey}" />
-                        <StackPanel Grid.Row="4">
-                            <TextBlock Text="Protocol" Foreground="White" />
-                            <ComboBox Margin="0,4,0,8" ItemsSource="{Binding ProtocolOptions}" SelectedItem="{Binding EditableConfig.Secondary.Protocol}" />
-                            <TextBlock Text="Model" Foreground="White" />
-                            <TextBox Margin="0,4,0,8" Text="{Binding EditableConfig.Secondary.Model}" />
-                            <TextBlock Text="SystemPrompt" Foreground="White" />
-                            <TextBox Margin="0,4,0,8" Height="90" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding EditableConfig.Secondary.SystemPrompt}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Timeout(s)" Foreground="White" />
-                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Secondary.TimeoutSeconds}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="MaxRetries" Foreground="White" />
-                                    <TextBox Margin="0,4,0,0" Text="{Binding EditableConfig.Secondary.MaxRetries}" />
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Grid>
-                </GroupBox>
-
-                <GroupBox Grid.Row="1" Grid.ColumnSpan="2" Header="Appearance" Foreground="White" Margin="0,12,0,0">
-                    <WrapPanel Margin="12" Orientation="Horizontal">
-                        <TextBlock Text="Ball Opacity" Foreground="White" VerticalAlignment="Center" />
-                        <Slider Width="180" Margin="12,0,8,0" Minimum="0.05" Maximum="1" Value="{Binding EditableConfig.BallOpacity}" />
-                        <TextBlock Text="{Binding EditableConfig.BallOpacity, StringFormat=F2}" Foreground="White" VerticalAlignment="Center" />
-                        <TextBlock Margin="24,0,0,0" Text="Window Opacity" Foreground="White" VerticalAlignment="Center" />
-                        <Slider Width="180" Margin="12,0,8,0" Minimum="0.3" Maximum="1" Value="{Binding EditableConfig.WindowOpacity}" />
-                        <TextBlock Text="{Binding EditableConfig.WindowOpacity, StringFormat=F2}" Foreground="White" VerticalAlignment="Center" />
-                        <TextBlock Margin="24,0,0,0" Text="Message Font" Foreground="White" VerticalAlignment="Center" />
-                        <Slider Width="180" Margin="12,0,8,0" Minimum="6" Maximum="14" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EditableConfig.MessageFontSize}" />
-                        <TextBlock Text="{Binding EditableConfig.MessageFontSize, StringFormat=F0}" Foreground="White" VerticalAlignment="Center" />
-                    </WrapPanel>
-                </GroupBox>
-
-                <GroupBox Grid.Row="2" Grid.ColumnSpan="2" Header="Compact Mode" Foreground="White" Margin="0,12,0,0">
-                    <Grid Margin="12">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <StackPanel>
-                            <TextBlock Text="Compact Mode Style" Foreground="White" />
-                            <ComboBox Margin="0,4,0,0" Width="220"
-                                      ItemsSource="{Binding CompactModeLevelOptions}"
-                                      SelectedItem="{Binding EditableConfig.CompactModeLevel}" />
-                        </StackPanel>
-
-                        <TextBlock Grid.Row="1" Margin="0,10,0,0" Foreground="#FFDDDDDD" TextWrapping="Wrap"
-                                   Text="Mode1 keeps the current compact layout. Mode2 hides the input box and Desktop button, turns the chat into a passive overlay, and keeps the history list visible. Mode3 keeps the same passive latest-message reader, but hides history and shows only the newest reply plus any auto-expanded overflow columns." />
-                    </Grid>
-                </GroupBox>
-
-                <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="Remote Capture" Foreground="White" Margin="0,12,0,0">
-                    <Grid Margin="12">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Foreground="#FFDDDDDD" TextWrapping="Wrap"
-                                   Text="This mode affects only the Phone remote trigger. You can keep full desktop capture, or save a preset region and let future phone taps capture only that area." />
-
-                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                            <TextBlock Text="Remote Capture Mode" Foreground="White" />
-                            <ComboBox Margin="0,4,0,0" Width="220"
-                                      ItemsSource="{Binding RemoteCaptureModeOptions}"
-                                      SelectedItem="{Binding EditableConfig.RemoteCaptureMode}" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Row="2" Margin="0,14,0,0" Orientation="Horizontal">
-                            <Button Padding="14,8" Content="Choose Region" Click="ChooseRemoteRegionButton_OnClick" />
-                            <Button Margin="8,0,0,0" Padding="14,8" Content="Clear Region" Click="ClearRemoteRegionButton_OnClick" />
-                        </StackPanel>
-
-                        <Border Grid.Row="3" Margin="0,14,0,0" Padding="12" Background="#22000000" CornerRadius="8" BorderBrush="#33FFFFFF" BorderThickness="1">
-                            <TextBlock Foreground="#FFF0F0F0" TextWrapping="Wrap" Text="{Binding RemoteCaptureRegionSummary}" />
-                        </Border>
-                    </Grid>
-                </GroupBox>
-
-                <GroupBox Grid.Row="4" Grid.ColumnSpan="2" Header="Remote Prompt Presets" Foreground="White" Margin="0,12,0,0">
-                    <Grid Margin="12">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Foreground="#FFDDDDDD" TextWrapping="Wrap"
-                                       Text="These presets appear as one-tap buttons on the Phone remote page. Add complete oral-question prompts here, then trigger them remotely after switching to compact mode." />
-                            <Button Grid.Column="1" Margin="12,0,0,0" Padding="14,8" Content="Add Preset" Click="AddPromptPresetButton_OnClick" />
-                        </Grid>
-
-                        <StackPanel Grid.Row="1" Margin="0,12,0,0">
-                            <TextBlock Foreground="#FFAAAAAA"
-                                       Text="Empty title or prompt entries are skipped on save."
-                                       Visibility="{Binding HasPromptPresets, Converter={StaticResource BoolToVisibility}}" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Foreground="#FFAAAAAA"
-                                       Text="No remote prompt presets yet. Click Add Preset to create one."
-                                       Visibility="{Binding NoPromptPresets, Converter={StaticResource BoolToVisibility}}" />
-                            <ItemsControl ItemsSource="{Binding PromptPresets}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Margin="0,10,0,0" Padding="12" CornerRadius="10" Background="#22000000" BorderBrush="#33FFFFFF" BorderThickness="1">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <TextBox Grid.Column="0"
-                                                         Margin="0,0,8,0"
-                                                         VerticalAlignment="Center"
-                                                         Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
-                                                <CheckBox Grid.Column="1"
-                                                          Margin="0,0,8,0"
-                                                          VerticalAlignment="Center"
-                                                          IsChecked="{Binding IsEnabled}" />
-                                                <TextBlock Grid.Column="2" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#FFCCCCCC" Text="Enabled" />
-                                                <Button Grid.Column="3" Margin="0,0,8,0" Padding="10,6" Content="Up" Click="MovePromptPresetUpButton_OnClick" />
-                                                <Button Grid.Column="4" Padding="10,6" Content="Down" Click="MovePromptPresetDownButton_OnClick" />
-
-                                                <Grid Grid.Row="1" Grid.ColumnSpan="5" Margin="0,10,0,0">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBox Grid.Column="0"
-                                                             Height="90"
-                                                             AcceptsReturn="True"
-                                                             TextWrapping="Wrap"
-                                                             VerticalScrollBarVisibility="Auto"
-                                                             Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" />
-                                                    <Button Grid.Column="1" Margin="8,0,0,0" Padding="12,6" Content="Delete" Click="DeletePromptPresetButton_OnClick" />
-                                                </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Grid>
-                </GroupBox>
-            </Grid>
-        </ScrollViewer>
-
-        <Grid Grid.Row="1" Margin="0,12,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Compact mode can be toggled from the chat window. Press Esc to return to full mode. Mode2 keeps history visible; Mode3 shows only the latest reply. Passive overlay wheel scrolling still works whenever the history area is shown." Foreground="#FFBBBBBB" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Margin="0,0,8,0" Padding="14,8" Content="Defaults" Click="DefaultsButton_OnClick" />
-                <Button Margin="0,0,8,0" Padding="14,8" Content="Cancel" Click="CancelButton_OnClick" />
-                <Button Padding="14,8" Content="Save" Click="SaveButton_OnClick" />
-            </StackPanel>
+                            <TextBlock Text="录音与文字记录保存目录" /><Grid Margin="0,5,0,14"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox x:Name="SpeechArchivePathBox" MinWidth="0" Text="{Binding EditableConfig.Battle.SpeechArchiveDirectory, UpdateSourceTrigger=PropertyChanged}" /><Button Grid.Column="1" Style="{StaticResource SettingsIconButton}" Margin="8,0,0,0" Content="&#xE8B7;" ToolTip="选择保存目录" AutomationProperties.Name="选择录音记录保存目录" Click="ChooseSpeechArchiveDirectory_OnClick" /></Grid>
+                            <TextBlock Text="断句停顿（秒）" /><TextBox x:Name="SpeechPauseBox" Width="100" HorizontalAlignment="Left" Margin="0,5,0,0" Text="{Binding EditableConfig.Battle.SpeechPauseSeconds, UpdateSourceTrigger=LostFocus, ValidatesOnExceptions=True}" />
+                        </StackPanel></GroupBox>
+                        <GroupBox Header="对话规则"><StackPanel>
+                            <CheckBox x:Name="SuppressSpeakerEchoBox" Content="过滤扬声器回流到麦克风的重复转写" IsChecked="{Binding EditableConfig.Battle.SuppressSpeakerEcho}" Margin="0,0,0,14" />
+                            <TextBlock Text="对话提示词" /><TextBox x:Name="ConversationPromptBox" Height="110" Margin="0,5,0,14" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding EditableConfig.Battle.ConversationPrompt, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Text="上下文提示词（携带前两轮问答）" /><TextBox x:Name="ContextPromptBox" Height="150" Margin="0,5,0,14" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding EditableConfig.Battle.ContextPrompt, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Text="我的触发词（每行一个）" /><TextBox x:Name="TriggerPhrasesBox" Height="80" Margin="0,5,0,0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding EditableConfig.Battle.TriggerPhrases, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel></GroupBox>
+                    </StackPanel></ScrollViewer>
+                </TabItem>
+                <TabItem x:Name="QuickQuestionsTab" Header="快捷提问">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">
+                        <Grid Margin="0,0,0,16"><TextBlock Text="手机预设问题" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" /><Button x:Name="AddPromptPresetButton" HorizontalAlignment="Right" Content="添加问题" Click="AddPromptPresetButton_OnClick" /></Grid>
+                        <TextBlock Text="暂无预设问题" Foreground="#FF616B73" Margin="0,10,0,0" Visibility="{Binding NoPromptPresets, Converter={StaticResource BoolToVisibility}}" />
+                        <ItemsControl x:Name="PromptPresetList" ItemsSource="{Binding PromptPresets}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <Border Margin="0,0,0,14" Padding="14" CornerRadius="8" Background="#FFFAFBFA" BorderBrush="#FFE1E6E3" BorderThickness="1"><StackPanel>
+                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBox Margin="0,0,14,0" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="问题标题" /><CheckBox Grid.Column="1" Content="启用" IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                    <Button Grid.Column="2" Style="{StaticResource SettingsIconButton}" Content="&#xE74A;" ToolTip="上移" Margin="0,0,6,0" Click="MovePromptPresetUpButton_OnClick" /><Button Grid.Column="3" Style="{StaticResource SettingsIconButton}" Content="&#xE74B;" ToolTip="下移" Margin="0,0,6,0" Click="MovePromptPresetDownButton_OnClick" /><Button Grid.Column="4" Style="{StaticResource SettingsIconButton}" Content="&#xE74D;" ToolTip="删除问题" Click="DeletePromptPresetButton_OnClick" />
+                                </Grid><TextBox Height="110" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="问题内容" />
+                            </StackPanel></Border>
+                        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel></ScrollViewer>
+                </TabItem>
+                <TabItem x:Name="AppearanceTab" Header="界面设置">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">
+                        <GroupBox Header="窗口显示"><StackPanel>
+                            <CheckBox Content="在截图与屏幕共享中隐藏窗口" Margin="0,0,0,22" IsChecked="{Binding EditableConfig.HideFromScreenCapture}" />
+                            <Grid Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions><TextBlock Text="窗口不透明度" VerticalAlignment="Center" /><Slider Grid.Column="1" Minimum="0.3" Maximum="1" Value="{Binding EditableConfig.WindowOpacity}" VerticalAlignment="Center" Margin="0,0,16,0" /><TextBlock Grid.Column="2" Text="{Binding EditableConfig.WindowOpacity, StringFormat={}{0:P0}}" VerticalAlignment="Center" TextAlignment="Right" /></Grid>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions><TextBlock Text="答案字号" VerticalAlignment="Center" /><Slider Grid.Column="1" Minimum="14" Maximum="28" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EditableConfig.Battle.AnswerFontSize}" VerticalAlignment="Center" Margin="0,0,16,0" /><TextBlock Grid.Column="2" Text="{Binding EditableConfig.Battle.AnswerFontSize, StringFormat=F0}" VerticalAlignment="Center" TextAlignment="Right" /></Grid>
+                        </StackPanel></GroupBox>
+                    </StackPanel></ScrollViewer>
+                </TabItem>
+            </TabControl>
+            <Border Grid.Row="2" BorderBrush="#FFE1E6E3" BorderThickness="0,1,0,0" Padding="22,14" Margin="0,14,0,0"><Grid>
+                <Button x:Name="DefaultsButton" Content="恢复默认" HorizontalAlignment="Left" Click="DefaultsButton_OnClick" />
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal"><Button x:Name="CancelButton" Content="取消" IsCancel="True" MinWidth="76" Click="CancelButton_OnClick" /><Button x:Name="SaveButton" Content="保存设置" MinWidth="96" Background="#FFE6F0E9" Margin="10,0,0,0" Click="SaveButton_OnClick" /></StackPanel>
+            </Grid></Border>
         </Grid>
-    </Grid>
+    </Border>
 </Window>

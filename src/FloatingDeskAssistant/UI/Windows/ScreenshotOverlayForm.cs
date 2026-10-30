@@ -75,6 +75,7 @@ public sealed class ScreenshotOverlayForm : Form
         KeyDown += OnKeyDown;
         Shown += (_, _) =>
         {
+            if (FloatingDeskAssistant.Application.WindowInteraction.IsClickThrough) return;
             Activate();
             Focus();
             BringToFront();
@@ -82,6 +83,25 @@ public sealed class ScreenshotOverlayForm : Form
     }
 
     public Rectangle SelectedRectangle { get; private set; }
+
+    protected override bool ShowWithoutActivation => FloatingDeskAssistant.Application.WindowInteraction.IsClickThrough;
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var parameters = base.CreateParams;
+            if (FloatingDeskAssistant.Application.WindowInteraction.IsClickThrough) parameters.ExStyle |= 0x08000020;
+            return parameters;
+        }
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        FloatingDeskAssistant.Application.WindowCaptureProtection.Apply(Handle);
+        FloatingDeskAssistant.Application.WindowInteraction.ApplyToNative(Handle);
+    }
 
     protected override void OnPaint(PaintEventArgs e)
     {

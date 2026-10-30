@@ -33,3 +33,6 @@ TestResults/
 findings.md
 progress.md
 task_plan.md
+
+# Downloaded offline speech model (see scripts/windows/download-speech-model.ps1)
+src/FloatingDeskAssistant/SpeechModels/

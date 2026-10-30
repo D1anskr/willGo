@@ -13,6 +13,7 @@ public partial class RemoteCaptureInfoWindow : Window
     public RemoteCaptureInfoWindow(IReadOnlyList<string> accessUrls, string statusText)
     {
         InitializeComponent();
+        FloatingDeskAssistant.Application.WindowCaptureProtection.Attach(this);
 
         _primaryUrl = accessUrls.FirstOrDefault() ?? string.Empty;
         PrimaryUrlTextBox.Text = _primaryUrl;

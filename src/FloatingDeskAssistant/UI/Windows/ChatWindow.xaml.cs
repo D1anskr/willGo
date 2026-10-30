@@ -1,6 +1,5 @@
 ﻿using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -10,12 +9,15 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using FloatingDeskAssistant.Models;
+using FloatingDeskAssistant.Application;
 using FloatingDeskAssistant.ViewModels;
 
 namespace FloatingDeskAssistant.UI.Windows;
 
 public partial class ChatWindow : Window
 {
+    public event Action? BattleModeRequested;
+    private void BattleMode_OnClick(object sender, RoutedEventArgs e) => BattleModeRequested?.Invoke();
     private const double CompactMinWindowHeight = 260;
     private const double PassiveCompactMinWindowHeight = 180;
     private const double MinimumConversationHeight = 140;
@@ -23,16 +25,6 @@ public partial class ChatWindow : Window
     private const double PassiveMinimumConversationHeight = 120;
     private const int ScreenMarginPixels = 12;
     private const double AutoSizeTolerance = 1;
-    private const int GwlExStyle = -20;
-    private const long WsExTransparent = 0x20L;
-    private const uint SwpNoSize = 0x0001;
-    private const uint SwpNoMove = 0x0002;
-    private const uint SwpNoZOrder = 0x0004;
-    private const uint SwpNoActivate = 0x0010;
-    private const uint SwpFrameChanged = 0x0020;
-    private const int HcAction = 0;
-    private const int WhMouseLl = 14;
-    private const int WmMouseWheel = 0x020A;
     private const double HistoryMaxViewportHeight = 180;
     private const double HistoryMinViewportHeight = 72;
     private const double LatestColumnWindowSpacing = 10;
@@ -50,9 +42,7 @@ public partial class ChatWindow : Window
     private const string SegmentBoundaryCharacters = " \t\r\n,.;:!?，。；：！？、)]}》】」』’”";
 
     private readonly MainViewModel _viewModel;
-    private readonly LowLevelMouseProc _mouseHookCallback;
     private readonly List<LatestMessageColumnWindow> _latestColumnWindows = new();
-    private IntPtr _mouseHookHandle;
     private double _expandedHeight = 620;
     private double _expandedMinHeight;
     private double _expandedMaxHeight = double.PositiveInfinity;
@@ -61,12 +51,13 @@ public partial class ChatWindow : Window
     private bool _compactSizingApplied;
     private bool _isApplyingAdaptiveHeight;
     private bool _isUpdatingLatestMessageLayout;
+    private MessageItemViewModel? _displayedMessage;
 
     public ChatWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        WindowCaptureProtection.Attach(this, 14, 8);
         _viewModel = viewModel;
-        _mouseHookCallback = MouseHookProc;
         DataContext = viewModel;
 
         Loaded += OnLoaded;
@@ -80,14 +71,13 @@ public partial class ChatWindow : Window
         _viewModel.ConfigChanged += _ => Dispatcher.BeginInvoke(() =>
         {
             ApplyLayoutMode();
-            ApplyPassiveOverlayMode();
             ScheduleAdaptiveHeightUpdate();
         });
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
-        ApplyPassiveOverlayMode();
+        WindowCaptureProtection.SetOpacity(this, _viewModel.WindowOpacity);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -108,7 +98,6 @@ public partial class ChatWindow : Window
 
         InputTextBox.SizeChanged += (_, _) => ScheduleAdaptiveHeightUpdate();
         ApplyLayoutMode();
-        ApplyPassiveOverlayMode();
         ScheduleAdaptiveHeightUpdate();
     }
 
@@ -153,12 +142,20 @@ public partial class ChatWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.WindowOpacity))
+        {
+            WindowCaptureProtection.SetOpacity(this, _viewModel.WindowOpacity);
+            foreach (var window in _latestColumnWindows)
+            {
+                WindowCaptureProtection.SetOpacity(window, _viewModel.WindowOpacity);
+            }
+        }
+
         if (e.PropertyName is nameof(MainViewModel.IsCompactChatMode)
             or nameof(MainViewModel.IsPassiveCompactChatMode)
             or nameof(MainViewModel.FooterVisibility))
         {
             ApplyLayoutMode();
-            ApplyPassiveOverlayMode();
             ScheduleAdaptiveHeightUpdate();
             return;
         }
@@ -192,7 +189,6 @@ public partial class ChatWindow : Window
 
     private void OnIsVisibleChanged(object? sender, DependencyPropertyChangedEventArgs e)
     {
-        ApplyPassiveOverlayMode();
         ScheduleAdaptiveHeightUpdate();
 
         if (!IsVisible)
@@ -359,6 +355,7 @@ public partial class ChatWindow : Window
 
     private void ClearCurrentMessageLayout()
     {
+        _displayedMessage = null;
         CurrentMessageContentPresenter.ApplySlice(string.Empty, 0, 0, System.Windows.Media.Brushes.White, _viewModel.MessageFontSize);
         CurrentMessageTimestamp.Text = string.Empty;
         CurrentMessageImage.Source = null;
@@ -371,6 +368,11 @@ public partial class ChatWindow : Window
 
     private void ApplyCurrentMessageAppearance(MessageItemViewModel message)
     {
+        if (!ReferenceEquals(_displayedMessage, message))
+        {
+            _displayedMessage = message;
+            CurrentMessageHost.ScrollToTop();
+        }
         CurrentMessagePanel.HorizontalAlignment = message.Alignment;
         CurrentMessageBubble.HorizontalAlignment = message.Alignment;
         CurrentMessageBubble.Background = message.BubbleBrush;
@@ -613,12 +615,14 @@ public partial class ChatWindow : Window
         {
             var window = new LatestMessageColumnWindow
             {
+                DataContext = _viewModel,
                 Owner = this,
                 ShowActivated = false,
                 Topmost = true
             };
 
             _latestColumnWindows.Add(window);
+            window.SourceInitialized += (_, _) => WindowCaptureProtection.SetOpacity(window, _viewModel.WindowOpacity);
         }
     }
 
@@ -715,7 +719,6 @@ public partial class ChatWindow : Window
                 window.Show();
             }
 
-            UpdateWindowMouseTransparency(window, IsVisible && _viewModel.IsPassiveCompactChatMode);
         }
     }
 
@@ -785,137 +788,6 @@ public partial class ChatWindow : Window
         }
     }
 
-    private void ApplyPassiveOverlayMode()
-    {
-        var shouldEnable = IsVisible && _viewModel.IsPassiveCompactChatMode;
-        UpdateWindowMouseTransparency(this, shouldEnable);
-        UpdateLatestColumnWindowsMouseTransparency(shouldEnable);
-
-        if (shouldEnable)
-        {
-            InstallMouseHook();
-            Keyboard.ClearFocus();
-            return;
-        }
-
-        UninstallMouseHook();
-    }
-
-    private void UpdateLatestColumnWindowsMouseTransparency(bool enabled)
-    {
-        foreach (var window in _latestColumnWindows)
-        {
-            UpdateWindowMouseTransparency(window, enabled);
-        }
-    }
-
-    private static void UpdateWindowMouseTransparency(Window window, bool enabled)
-    {
-        var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd == IntPtr.Zero)
-        {
-            return;
-        }
-
-        var currentStyle = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
-        var targetStyle = enabled
-            ? currentStyle | WsExTransparent
-            : currentStyle & ~WsExTransparent;
-
-        if (targetStyle == currentStyle)
-        {
-            return;
-        }
-
-        SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(targetStyle));
-        SetWindowPos(
-            hwnd,
-            IntPtr.Zero,
-            0,
-            0,
-            0,
-            0,
-            SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
-    }
-
-    private void InstallMouseHook()
-    {
-        if (_mouseHookHandle != IntPtr.Zero)
-        {
-            return;
-        }
-
-        using var process = Process.GetCurrentProcess();
-        var moduleName = process.MainModule?.ModuleName;
-        var moduleHandle = string.IsNullOrWhiteSpace(moduleName)
-            ? IntPtr.Zero
-            : GetModuleHandle(moduleName);
-
-        _mouseHookHandle = SetWindowsHookEx(WhMouseLl, _mouseHookCallback, moduleHandle, 0);
-    }
-
-    private void UninstallMouseHook()
-    {
-        if (_mouseHookHandle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        UnhookWindowsHookEx(_mouseHookHandle);
-        _mouseHookHandle = IntPtr.Zero;
-    }
-
-    private IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
-    {
-        if (nCode == HcAction
-            && wParam == (IntPtr)WmMouseWheel
-            && TryHandlePassiveOverlayMouseWheel(lParam))
-        {
-            return new IntPtr(1);
-        }
-
-        return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
-    }
-
-    private bool TryHandlePassiveOverlayMouseWheel(IntPtr lParam)
-    {
-        if (!IsVisible || !_viewModel.IsPassiveCompactChatMode || !IsLoaded)
-        {
-            return false;
-        }
-
-        if (HistoryHostBorder.Visibility != Visibility.Visible
-            || HistoryScrollViewer.ScrollableHeight <= AutoSizeTolerance)
-        {
-            return false;
-        }
-
-        var hookData = Marshal.PtrToStructure<MsllHookStruct>(lParam);
-        if (!IsPointOverMessageArea(hookData.Point.X, hookData.Point.Y))
-        {
-            return false;
-        }
-
-        var wheelDelta = (short)((hookData.MouseData >> 16) & 0xffff);
-        if (wheelDelta == 0)
-        {
-            return false;
-        }
-
-        ScrollPassiveOverlay(wheelDelta);
-        return true;
-    }
-
-    private bool IsPointOverMessageArea(int screenX, int screenY)
-    {
-        return HistoryHostBorder.Visibility == Visibility.Visible
-            && TryGetElementScreenBounds(HistoryScrollViewer, out var bounds)
-            && screenX >= bounds.Left
-            && screenX < bounds.Right
-            && screenY >= bounds.Top
-            && screenY < bounds.Bottom;
-    }
-
     private bool TryGetElementScreenBounds(FrameworkElement element, out System.Drawing.Rectangle bounds)
     {
         bounds = System.Drawing.Rectangle.Empty;
@@ -952,17 +824,23 @@ public partial class ChatWindow : Window
         }
     }
 
-    private void ScrollPassiveOverlay(int wheelDelta)
+    public void ScrollConversation(int direction)
     {
-        var notches = wheelDelta / (double)System.Windows.Input.Mouse.MouseWheelDeltaForOneLine;
-        if (Math.Abs(notches) < double.Epsilon)
+        if (!IsVisible || !IsLoaded || direction == 0) return;
+        var pixels = Math.Sign(direction) * Math.Max(36, _viewModel.MessageFontSize * 3);
+        var latestScrollable = false;
+        if (CurrentMessageHost.ScrollableHeight > AutoSizeTolerance)
         {
-            notches = Math.Sign(wheelDelta);
+            CurrentMessageHost.ScrollToVerticalOffset(Math.Clamp(
+                CurrentMessageHost.VerticalOffset + pixels, 0, CurrentMessageHost.ScrollableHeight));
+            latestScrollable = true;
         }
-
-        var scrollStep = Math.Max(36.0, HistoryScrollViewer.ViewportHeight * 0.16);
-        var targetOffset = HistoryScrollViewer.VerticalOffset - (notches * scrollStep);
-        HistoryScrollViewer.ScrollToVerticalOffset(Math.Clamp(targetOffset, 0, HistoryScrollViewer.ScrollableHeight));
+        foreach (var window in _latestColumnWindows) latestScrollable |= window.ScrollConversation(pixels);
+        if (!latestScrollable && HistoryHostBorder.Visibility == Visibility.Visible)
+        {
+            HistoryScrollViewer.ScrollToVerticalOffset(Math.Clamp(
+                HistoryScrollViewer.VerticalOffset + pixels, 0, HistoryScrollViewer.ScrollableHeight));
+        }
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -973,8 +851,6 @@ public partial class ChatWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        UninstallMouseHook();
-
         foreach (var window in _latestColumnWindows.ToArray())
         {
             window.Close();
@@ -1021,40 +897,7 @@ public partial class ChatWindow : Window
         }
     }
 
-    private static IntPtr GetWindowLongPtr(IntPtr hwnd, int index)
-    {
-        return IntPtr.Size == 8
-            ? GetWindowLongPtr64(hwnd, index)
-            : new IntPtr(GetWindowLong32(hwnd, index));
-    }
-
     private readonly record struct MessageTextSlice(int Start, int Length);
-
-    private static IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr newLong)
-    {
-        return IntPtr.Size == 8
-            ? SetWindowLongPtr64(hwnd, index, newLong)
-            : new IntPtr(SetWindowLong32(hwnd, index, newLong.ToInt32()));
-    }
-
-    private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PointStruct
-    {
-        public int X;
-        public int Y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MsllHookStruct
-    {
-        public PointStruct Point;
-        public int MouseData;
-        public int Flags;
-        public int Time;
-        public IntPtr DwExtraInfo;
-    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RectStruct
@@ -1064,35 +907,6 @@ public partial class ChatWindow : Window
         public int Right;
         public int Bottom;
     }
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr SetWindowsHookEx(int hookType, LowLevelMouseProc callback, IntPtr moduleHandle, uint threadId);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool UnhookWindowsHookEx(IntPtr hookHandle);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr CallNextHookEx(IntPtr hookHandle, int nCode, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr GetModuleHandle(string moduleName);
-
-    [DllImport("user32.dll", EntryPoint = "GetWindowLong", SetLastError = true)]
-    private static extern int GetWindowLong32(IntPtr hwnd, int index);
-
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", SetLastError = true)]
-    private static extern IntPtr GetWindowLongPtr64(IntPtr hwnd, int index);
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLong", SetLastError = true)]
-    private static extern int SetWindowLong32(IntPtr hwnd, int index, int newLong);
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr", SetLastError = true)]
-    private static extern IntPtr SetWindowLongPtr64(IntPtr hwnd, int index, IntPtr newLong);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

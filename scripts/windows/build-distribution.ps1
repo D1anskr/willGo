@@ -1,6 +1,7 @@
 param(
     [string]$Runtime = 'win-x64',
     [string]$Configuration = 'Release',
+    [string]$SevenZipPath = '',
     [switch]$Zip = $true
 )
 
@@ -141,7 +142,17 @@ if ($Zip) {
         Remove-Item -Path $zipPath -Force
     }
 
-    Compress-Archive -Path (Join-Path $packageRoot '*') -DestinationPath $zipPath -CompressionLevel Optimal
+    $needsZip64 = @(Get-ChildItem -LiteralPath $packageRoot -File -Recurse | Where-Object { $_.Length -ge 2GB }).Count -gt 0
+    if ($needsZip64 -or $SevenZipPath) {
+        if (!$SevenZipPath) { $SevenZipPath = (Get-Command 7z.exe -ErrorAction Stop).Source }
+        Push-Location $packageRoot
+        try {
+            & $SevenZipPath a -tzip -mx=3 $zipPath '.\*' -bso0 -bsp0
+            if ($LASTEXITCODE -ne 0) { throw 'ZIP64 package creation failed.' }
+        }
+        finally { Pop-Location }
+    }
+    else { Compress-Archive -Path (Join-Path $packageRoot '*') -DestinationPath $zipPath -CompressionLevel Optimal }
     Write-Host "Archive created: $zipPath" -ForegroundColor Green
 }
 

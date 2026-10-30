@@ -1,0 +1,42 @@
+willGo 1.10.5 third-party components and speech service
+
+NAudio 2.2.1
+Copyright Mark Heath and contributors. MIT License.
+https://github.com/naudio/NAudio
+Full license: Licenses/NAudio-MIT.txt
+
+QRCoder 1.7.0
+Copyright Raffael Herrmann and contributors. MIT License.
+https://github.com/codebude/QRCoder
+Full license: Licenses/QRCoder-MIT.txt
+
+Markdig 0.41.3
+Copyright (c) 2018-2019, Alexandre Mutel. BSD 2-Clause License.
+https://github.com/xoofx/markdig
+Full license: Licenses/Markdig-BSD-2-Clause.txt
+
+AvalonEdit 6.3.1.120
+Copyright (c) 2000-2025 AlphaSierraPapa for the SharpDevelop Team. MIT License.
+https://github.com/icsharpcode/AvalonEdit
+Full license: Licenses/AvalonEdit-MIT.txt
+
+Speech recognition uses the commercial Doubao streaming ASR 2.0 cloud service
+provided by Volcengine. No local speech models or native ASR runtime are bundled.
+Service terms, availability and usage charges are determined by Volcengine.
+https://www.volcengine.com/docs/6561/1354869
+
+When the user starts recognition, microphone and system playback audio are
+streamed to openspeech.bytedance.com over two authenticated TLS WebSockets.
+No audio is uploaded while recognition is stopped. The connection test sends
+only a short silent sample, without opening a microphone or playback device.
+Completed cloud utterances are retained verbatim. Cloud second-pass recognition,
+hotwords and context injection are disabled; there is no local language model
+refinement or forced English vocabulary replacement. Speaker sentences submit
+directly; microphone sentences submit only when a configured trigger matches.
+
+Each capture session asks whether to record audio locally. Yes saves a single
+stereo WAV (microphone left, playback right) and a Markdown transcript. No saves
+only Markdown. Cancel does not start recognition. Archives stay in the configured
+local directory. Speech credentials use Windows DPAPI for the current user.
+User settings, credentials and recordings are not part of the installer.
+Questions selected for answering use the separately configured model endpoints.

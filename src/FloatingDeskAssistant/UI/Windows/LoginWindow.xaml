@@ -1,0 +1,82 @@
+<Window x:Class="FloatingDeskAssistant.UI.Windows.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="willGo 登录" Width="480" Height="638" MinWidth="340" MinHeight="320" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStyle="None" WindowStartupLocation="CenterScreen" Background="White" Foreground="#FF202428"
+        FontFamily="Microsoft YaHei UI,Microsoft YaHei,Segoe UI" FontSize="14"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="58" ResizeBorderThickness="0" CornerRadius="16"
+                           GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/LightTheme.xaml" /></ResourceDictionary.MergedDictionaries>
+        <Style TargetType="Button" BasedOn="{StaticResource LightButton}">
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="MinHeight" Value="44" />
+        </Style>
+        <DrawingImage x:Key="JourneyArtwork">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#FFF1F6F4" Geometry="M0,0 H400 V122 H0 Z" />
+                    <GeometryDrawing Brush="#FFDFECE7" Geometry="M256,12 H370 V104 H256 Z" />
+                    <GeometryDrawing Brush="#FFF9FCFA" Geometry="M264,20 H362 V96 H264 Z" />
+                    <GeometryDrawing Brush="#FFF0CE76" Geometry="M284,72 A28,28 0 0 1 340,72 Z" />
+                    <GeometryDrawing Brush="#FFDFECE7" Geometry="M310,16 H316 V100 H310 Z M260,68 H366 V73 H260 Z" />
+                    <GeometryDrawing Brush="#FFB2CEC1" Geometry="M20,108 H98 V88 H150 V68 H202 V48 H244 V108 Z" />
+                    <GeometryDrawing Brush="#FF79A28E" Geometry="M98,88 H150 V108 H98 Z M150,68 H202 V108 H150 Z M202,48 H244 V108 H202 Z" />
+                    <GeometryDrawing Brush="#FF477B63" Geometry="M70,103 H110 V111 H70 Z M76,84 H104 V103 H76 Z" />
+                    <GeometryDrawing Brush="#FFF8FBF9" Geometry="M80,89 H100 V92 H80 Z M80,95 H96 V98 H80 Z" />
+                    <GeometryDrawing Brush="#FFE0B875" Geometry="M198,33 L222,22 L215,43 L210,34 Z" />
+                    <GeometryDrawing Brush="#FFAC8953" Geometry="M210,34 L222,22 L207,31 Z" />
+                    <GeometryDrawing Geometry="M126,55 C144,23 168,48 190,28">
+                        <GeometryDrawing.Pen><Pen Brush="#FF9BB8A9" Thickness="1.5" DashStyle="{x:Static DashStyles.Dash}" /></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                    <GeometryDrawing Geometry="M20,111 H380">
+                        <GeometryDrawing.Pen><Pen Brush="#FFCCDCD4" Thickness="1" /></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Border BorderBrush="#FFDDE5E0" BorderThickness="1" CornerRadius="16">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="58" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Grid Margin="28,0,16,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock Text="willGo" FontSize="25" FontWeight="SemiBold" Foreground="#FF285C45" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding VersionText}" FontSize="12" Foreground="#FF758079" VerticalAlignment="Center" Margin="12,0" />
+                <Button x:Name="CloseLoginButton" Grid.Column="2" Content="&#xE8BB;" Command="{Binding ExitCommand}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" FontFamily="Segoe MDL2 Assets"
+                        Width="32" Height="32" MinHeight="32" Padding="0" BorderThickness="0"
+                        ToolTip="退出" AutomationProperties.Name="退出" />
+            </Grid>
+            <ScrollViewer x:Name="LoginScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="LoginBody" Margin="32,6,32,26">
+                    <Border CornerRadius="8" Background="#FFF1F6F4" ClipToBounds="True" Margin="0,0,0,24">
+                        <Image x:Name="LoginArtwork" Source="{StaticResource JourneyArtwork}" Height="116" Stretch="Uniform"
+                               AutomationProperties.Name="晨光照进窗边，台阶向上延伸，一架纸飞机正在出发" />
+                    </Border>
+                    <TextBlock x:Name="WelcomeHeadline" FontSize="25" FontWeight="SemiBold" LineHeight="37" TextWrapping="Wrap"
+                               Text="暂时没有回音，&#x0a;不代表你没有分量。" />
+                    <TextBlock x:Name="WelcomeMessage" FontSize="14" Foreground="#FF647169" LineHeight="24" TextWrapping="Wrap" Margin="0,12,0,26"
+                               Text="一场面试，不能定义全部的你。&#x0a;今天认真准备的每一点，都在为下一次开口积攒底气。" />
+                    <TextBlock Text="账号 ID" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBox x:Name="UserIdTextBox" Text="{Binding UserId, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsBusy}"
+                             Padding="12,11" FontSize="16" MinHeight="46" AutomationProperties.Name="账号 ID"
+                             Background="White" Foreground="#FF202428" CaretBrush="#FF202428" BorderBrush="#FFCCD9D1" />
+                    <CheckBox Content="记住账号" IsChecked="{Binding RememberUserId}" Foreground="#FF526158" Margin="0,13,0,0" />
+                    <TextBlock x:Name="LoginStatusText" Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="#FF915914"
+                               LineHeight="21" MinHeight="24" Margin="0,10,0,8" AutomationProperties.LiveSetting="Polite" />
+                    <Button x:Name="LoginButton" Content="登录" IsDefault="True" Command="{Binding LoginCommand}" MinHeight="46"
+                            FontSize="15" FontWeight="SemiBold" Background="#FFDFEDE5" BorderBrush="#FFA7C6B4" />
+                    <TextBlock Text="愿你的认真，被合适的人看见。" Foreground="#FF718077" FontSize="12" TextWrapping="Wrap"
+                               TextAlignment="Center" Margin="0,20,0,0" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>

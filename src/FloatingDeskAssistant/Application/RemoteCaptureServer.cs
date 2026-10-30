@@ -11,6 +11,7 @@ public sealed class RemoteCaptureServer : IDisposable
 {
     private const int PreferredPort = 38647;
     private const int MaxPortAttempts = 10;
+    private const int MaxRemotePromptBodyLength = 32 * 1024;
 
     private readonly ILoggerService _logger;
     private readonly Func<RemoteCaptureTriggerResult> _triggerCapture;
@@ -20,6 +21,7 @@ public sealed class RemoteCaptureServer : IDisposable
     private readonly Func<bool, Task<RemoteCompactModeResult>> _setCompactModeAsync;
     private readonly Func<IReadOnlyList<RemotePromptPresetInfo>> _promptPresetProvider;
     private readonly Func<string, RemotePromptPresetTriggerResult> _triggerPromptPreset;
+    private readonly Func<string, RemotePromptTextTriggerResult> _triggerPromptText;
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private Task? _acceptLoopTask;
@@ -32,7 +34,8 @@ public sealed class RemoteCaptureServer : IDisposable
         Func<bool> compactModeEnabledProvider,
         Func<bool, Task<RemoteCompactModeResult>> setCompactModeAsync,
         Func<IReadOnlyList<RemotePromptPresetInfo>> promptPresetProvider,
-        Func<string, RemotePromptPresetTriggerResult> triggerPromptPreset)
+        Func<string, RemotePromptPresetTriggerResult> triggerPromptPreset,
+        Func<string, RemotePromptTextTriggerResult> triggerPromptText)
     {
         _logger = logger;
         _triggerCapture = triggerCapture;
@@ -42,6 +45,7 @@ public sealed class RemoteCaptureServer : IDisposable
         _setCompactModeAsync = setCompactModeAsync;
         _promptPresetProvider = promptPresetProvider;
         _triggerPromptPreset = triggerPromptPreset;
+        _triggerPromptText = triggerPromptText;
     }
 
     public int Port { get; private set; }
@@ -183,9 +187,22 @@ public sealed class RemoteCaptureServer : IDisposable
                 return;
             }
 
+            var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string? headerLine;
             while (!string.IsNullOrEmpty(headerLine = await reader.ReadLineAsync().ConfigureAwait(false)))
             {
+                var separatorIndex = headerLine.IndexOf(':');
+                if (separatorIndex <= 0)
+                {
+                    continue;
+                }
+
+                var headerName = headerLine[..separatorIndex].Trim();
+                var headerValue = headerLine[(separatorIndex + 1)..].Trim();
+                if (!string.IsNullOrWhiteSpace(headerName))
+                {
+                    headers[headerName] = headerValue;
+                }
             }
 
             var requestParts = requestLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -258,6 +275,18 @@ public sealed class RemoteCaptureServer : IDisposable
                         BuildPromptPresetResultHtml(
                             _statusTextProvider(),
                             promptPresetResult,
+                            _compactModeEnabledProvider(),
+                            _promptPresetProvider())).ConfigureAwait(false);
+                    break;
+                case "/prompt/send" when method is "GET" or "POST":
+                    var promptTextResult = await HandlePromptTextRequestAsync(method, uri, reader, headers).ConfigureAwait(false);
+                    await WriteHtmlResponseAsync(
+                        stream,
+                        promptTextResult.Accepted ? 200 : 409,
+                        promptTextResult.Accepted ? "OK" : "Conflict",
+                        BuildPromptTextResultHtml(
+                            _statusTextProvider(),
+                            promptTextResult,
                             _compactModeEnabledProvider(),
                             _promptPresetProvider())).ConfigureAwait(false);
                     break;
@@ -465,6 +494,32 @@ public sealed class RemoteCaptureServer : IDisposable
       background: linear-gradient(180deg, #4d5f86 0%, #2e3b58 100%);
       box-shadow: 0 10px 20px rgba(26,35,56,0.35);
     }
+    textarea {
+      width: 100%;
+      min-height: 104px;
+      box-sizing: border-box;
+      resize: vertical;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px;
+      padding: 14px;
+      color: #ffffff;
+      background: rgba(0,0,0,0.24);
+      font: 16px/1.45 "Segoe UI", Arial, sans-serif;
+      outline: none;
+    }
+    textarea:focus {
+      border-color: rgba(139,211,255,0.72);
+      box-shadow: 0 0 0 3px rgba(79,182,255,0.18);
+    }
+    textarea::placeholder {
+      color: #8f9db5;
+    }
+    .prompt-action {
+      margin-top: 10px;
+      color: #08111f;
+      background: linear-gradient(180deg, #b6f1cc 0%, #66d899 100%);
+      box-shadow: 0 12px 24px rgba(102,216,153,0.28);
+    }
     .panel {
       margin-top: 16px;
       padding: 14px;
@@ -593,20 +648,17 @@ public sealed class RemoteCaptureServer : IDisposable
     <form method="post" action="/capture">
       <button type="submit">Capture Host Desktop</button>
     </form>
-    <div class="section-title">Remote View Mode</div>
-    <p>Toggle compact mode remotely, same as pressing the Compact button in willGo.</p>
-    <form method="post" action="/compact/toggle">
-      <button type="submit" class="secondary-action">__COMPACT_ACTION__</button>
+    <div class="section-title">Ask from Phone</div>
+    <form method="post" action="/prompt/send" accept-charset="utf-8">
+      <textarea name="prompt" maxlength="4000" placeholder="Type a question to send to willGo..." required></textarea>
+      <button type="submit" class="prompt-action">Send Question</button>
     </form>
-    <p class="hint">Current compact mode: __COMPACT_STATUS__</p>
     <div class="section-title">Preset Questions</div>
-    <p>Tap one preset below to send a prepared oral-question prompt directly into the chat history.</p>
     __PRESET_HTML__
     __NOTICE__
-    <div class="section-title">Remote Ball Control</div>
-    <p>Push and hold the joystick below. The floating ball keeps moving like a remote car; release to stop instantly.</p>
+    <div class="section-title">Window Position</div>
     <div class="joystick-wrap">
-      <div class="joystick" id="joystick" aria-label="Remote ball joystick">
+      <div class="joystick" id="joystick" aria-label="Window position joystick">
         <div class="joystick-knob" id="joystickKnob"></div>
       </div>
     </div>
@@ -678,7 +730,7 @@ public sealed class RemoteCaptureServer : IDisposable
 
         const activeDistance = Math.hypot(dx, dy);
         if (activeDistance < deadZone) {
-          updateStatus('Hold and drag to move the floating ball.');
+          updateStatus('Hold and drag to move the window.');
           return;
         }
 
@@ -861,12 +913,92 @@ public sealed class RemoteCaptureServer : IDisposable
         foreach (var segment in trimmed.Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
             var parts = segment.Split('=', 2);
-            var key = Uri.UnescapeDataString(parts[0]);
-            var value = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty;
+            var key = WebUtility.UrlDecode(parts[0]) ?? string.Empty;
+            var value = parts.Length > 1 ? WebUtility.UrlDecode(parts[1]) ?? string.Empty : string.Empty;
             result[key] = value;
         }
 
         return result;
+    }
+
+    private async Task<RemotePromptTextTriggerResult> HandlePromptTextRequestAsync(
+        string method,
+        Uri uri,
+        StreamReader reader,
+        IReadOnlyDictionary<string, string> headers)
+    {
+        string? prompt = null;
+
+        if (method == "POST")
+        {
+            if (!TryGetContentLength(headers, out var contentLength, out var contentLengthError))
+            {
+                return new RemotePromptTextTriggerResult(false, contentLengthError);
+            }
+
+            if (contentLength > MaxRemotePromptBodyLength)
+            {
+                return new RemotePromptTextTriggerResult(false, "Question is too large. Keep it under 4000 characters.");
+            }
+
+            var body = await ReadRequestBodyAsync(reader, contentLength).ConfigureAwait(false);
+            var form = ParseQueryString(body);
+            form.TryGetValue("prompt", out prompt);
+        }
+
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            var query = ParseQueryString(uri.Query);
+            query.TryGetValue("prompt", out prompt);
+        }
+
+        return _triggerPromptText(prompt ?? string.Empty);
+    }
+
+    private static bool TryGetContentLength(
+        IReadOnlyDictionary<string, string> headers,
+        out int contentLength,
+        out string errorMessage)
+    {
+        contentLength = 0;
+        errorMessage = string.Empty;
+
+        if (!headers.TryGetValue("Content-Length", out var rawContentLength)
+            || string.IsNullOrWhiteSpace(rawContentLength))
+        {
+            return true;
+        }
+
+        if (!int.TryParse(rawContentLength, out contentLength) || contentLength < 0)
+        {
+            errorMessage = "Invalid Content-Length header.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static async Task<string> ReadRequestBodyAsync(StreamReader reader, int contentLength)
+    {
+        if (contentLength <= 0)
+        {
+            return string.Empty;
+        }
+
+        var buffer = new char[contentLength];
+        var offset = 0;
+        while (offset < buffer.Length)
+        {
+            var read = await reader.ReadBlockAsync(buffer, offset, buffer.Length - offset).ConfigureAwait(false);
+            if (read == 0)
+            {
+                break;
+            }
+
+            offset += read;
+        }
+
+        return new string(buffer, 0, offset);
     }
 
     private static bool TryGetIntQueryValue(IReadOnlyDictionary<string, string> query, string key, out int value)
@@ -908,6 +1040,18 @@ public sealed class RemoteCaptureServer : IDisposable
         var notice = result.Accepted
             ? result.Message
             : $"Prompt preset was not accepted: {result.Message}";
+        return BuildIndexHtml(statusText, notice, compactModeEnabled, promptPresets);
+    }
+
+    private static string BuildPromptTextResultHtml(
+        string statusText,
+        RemotePromptTextTriggerResult result,
+        bool compactModeEnabled,
+        IReadOnlyList<RemotePromptPresetInfo> promptPresets)
+    {
+        var notice = result.Accepted
+            ? result.Message
+            : $"Question was not accepted: {result.Message}";
         return BuildIndexHtml(statusText, notice, compactModeEnabled, promptPresets);
     }
 
@@ -955,4 +1099,6 @@ public sealed record RemoteCompactModeResult(bool Accepted, string Message, bool
 public sealed record RemotePromptPresetInfo(string Id, string Title, string Summary);
 
 public sealed record RemotePromptPresetTriggerResult(bool Accepted, string Message);
+
+public sealed record RemotePromptTextTriggerResult(bool Accepted, string Message);
 

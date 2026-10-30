@@ -19,16 +19,30 @@ public sealed class ScreenshotService : IScreenshotService
         _logger = logger;
     }
 
-    public Task<ScreenshotCaptureResult?> CaptureAsync(CancellationToken cancellationToken)
+    public async Task<ScreenshotCaptureResult?> CaptureAsync(CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource<ScreenshotCaptureResult?>();
+        var hidden = await HideVisibleAppWindowsAsync(cancellationToken);
+        try { return await SelectRegionAsync(cancellationToken); }
+        finally { await RestoreHiddenWindowsAsync(hidden, CancellationToken.None); }
+    }
+
+    private Task<ScreenshotCaptureResult?> SelectRegionAsync(CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<ScreenshotCaptureResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var thread = new Thread(() =>
         {
             try
             {
                 using var overlay = new ScreenshotOverlayForm();
+                overlay.Shown += (_, _) => { if (cancellationToken.IsCancellationRequested) overlay.Close(); };
+                using var registration = cancellationToken.Register(() =>
+                {
+                    try { if (overlay.IsHandleCreated && !overlay.IsDisposed) overlay.BeginInvoke(new Action(overlay.Close)); }
+                    catch (InvalidOperationException) { }
+                });
                 var dialog = overlay.ShowDialog();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (dialog != DialogResult.OK || overlay.SelectedRectangle.Width <= 0 || overlay.SelectedRectangle.Height <= 0)
                 {
                     tcs.TrySetResult(null);
@@ -38,6 +52,7 @@ public sealed class ScreenshotService : IScreenshotService
                 var capture = CaptureRectangle(overlay.SelectedRectangle, cancellationToken, "screenshot");
                 tcs.TrySetResult(capture);
             }
+            catch (OperationCanceledException) { tcs.TrySetCanceled(cancellationToken); }
             catch (Exception ex)
             {
                 _logger.Error("Screenshot capture failed.", ex);
@@ -51,11 +66,6 @@ public sealed class ScreenshotService : IScreenshotService
 
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-
-        cancellationToken.Register(() =>
-        {
-            tcs.TrySetCanceled(cancellationToken);
-        });
 
         return tcs.Task;
     }
@@ -78,7 +88,7 @@ public sealed class ScreenshotService : IScreenshotService
         {
             if (hiddenWindows.Length > 0)
             {
-                await RestoreHiddenWindowsAsync(hiddenWindows, cancellationToken);
+                await RestoreHiddenWindowsAsync(hiddenWindows, CancellationToken.None);
             }
         }
     }
@@ -101,7 +111,7 @@ public sealed class ScreenshotService : IScreenshotService
         {
             if (hiddenWindows.Length > 0)
             {
-                await RestoreHiddenWindowsAsync(hiddenWindows, cancellationToken);
+                await RestoreHiddenWindowsAsync(hiddenWindows, CancellationToken.None);
             }
         }
     }

@@ -170,6 +170,14 @@ $startMenuUninstallPath = Join-Path $startMenuDir "Uninstall $($metadata.Shortcu
 
 Write-Step 'Preparing install directories'
 Stop-AppProcesses -ProcessNames (Get-ProcessNames -Metadata $metadata)
+$speechExe = Join-Path $installRoot 'app/SpeechModels/Fun-ASR-Nano-GGUF/llama-funasr-cli.exe'
+Get-CimInstance Win32_Process -Filter "Name='llama-funasr-cli.exe'" | Where-Object {
+    $_.ExecutablePath -and [IO.Path]::GetFullPath($_.ExecutablePath) -eq [IO.Path]::GetFullPath($speechExe)
+} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+$qwenExe = Join-Path $installRoot 'app/SpeechModels/Qwen3-ASR-1.7B/speech.exe'
+Get-CimInstance Win32_Process -Filter "Name='speech.exe'" | Where-Object {
+    $_.ExecutablePath -and [IO.Path]::GetFullPath($_.ExecutablePath) -eq [IO.Path]::GetFullPath($qwenExe)
+} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
 Copy-DirectoryContents -Source $appSourceDir -Destination $appInstallDir -Label 'Application directory'
 Copy-DirectoryContents -Source $toolsSourceDir -Destination $toolsInstallDir -Label 'Tools directory'

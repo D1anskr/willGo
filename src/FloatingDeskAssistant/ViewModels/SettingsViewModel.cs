@@ -2,8 +2,12 @@ using System.Drawing;
 using System.Collections.ObjectModel;
 using FloatingDeskAssistant.Configuration;
 using FloatingDeskAssistant.ViewModels.Base;
+using FloatingDeskAssistant.Application;
+using NAudio.CoreAudioApi;
 
 namespace FloatingDeskAssistant.ViewModels;
+
+public sealed record SettingsOption<T>(T Value, string Label);
 
 public sealed class SettingsViewModel : ObservableObject
 {
@@ -15,28 +19,48 @@ public sealed class SettingsViewModel : ObservableObject
         EditableConfig = current.Clone();
         PromptPresets = new ObservableCollection<PromptPresetEditorViewModel>();
         ReloadPromptPresets();
+        Microphones = LoadDevices(DataFlow.Capture, EditableConfig.Battle.MicrophoneDeviceId);
+        Speakers = LoadDevices(DataFlow.Render, EditableConfig.Battle.SpeakerDeviceId);
     }
 
     public AppConfig EditableConfig { get; private set; }
+    public IReadOnlyList<AudioDeviceOption> Microphones { get; }
+    public IReadOnlyList<AudioDeviceOption> Speakers { get; }
+
+    private static IReadOnlyList<AudioDeviceOption> LoadDevices(DataFlow flow, string savedId)
+    {
+        List<AudioDeviceOption> devices;
+        try { devices = BattleSpeechService.GetDevices(flow).ToList(); }
+        catch { devices = [new("", "跟随系统默认设备")]; }
+        if (!devices.Any(d => d.Id == savedId)) devices.Add(new(savedId, "之前选择的设备（当前不可用）"));
+        return devices;
+    }
 
     public ObservableCollection<PromptPresetEditorViewModel> PromptPresets { get; }
 
-    public IReadOnlyList<ModelApiProtocol> ProtocolOptions { get; } =
-        Enum.GetValues<ModelApiProtocol>();
+    public IReadOnlyList<SettingsOption<ModelApiProtocol>> ProtocolOptions { get; } =
+    [
+        new(ModelApiProtocol.Auto, "自动识别"),
+        new(ModelApiProtocol.OpenAiChatCompletions, "聊天补全协议"),
+        new(ModelApiProtocol.OpenAiResponses, "响应协议"),
+        new(ModelApiProtocol.AnthropicMessages, "消息协议")
+    ];
+    public IReadOnlyList<SettingsOption<PreferredModelTarget>> PreferredModelOptions { get; } =
+    [new(PreferredModelTarget.Primary, "主模型"), new(PreferredModelTarget.Secondary, "备用模型")];
 
     public IReadOnlyList<CompactModeLevel> CompactModeLevelOptions { get; } =
         Enum.GetValues<CompactModeLevel>();
 
-    public IReadOnlyList<RemoteCaptureMode> RemoteCaptureModeOptions { get; } =
-        Enum.GetValues<RemoteCaptureMode>();
+    public IReadOnlyList<SettingsOption<RemoteCaptureMode>> RemoteCaptureModeOptions { get; } =
+    [new(RemoteCaptureMode.FullDesktop, "整个桌面"), new(RemoteCaptureMode.PresetRegion, "指定区域")];
 
     public bool HasRemoteCaptureRegion =>
         EditableConfig.RemoteCaptureRegionWidth >= 6 &&
         EditableConfig.RemoteCaptureRegionHeight >= 6;
 
     public string RemoteCaptureRegionSummary => HasRemoteCaptureRegion
-        ? $"Saved region: X={EditableConfig.RemoteCaptureRegionX}, Y={EditableConfig.RemoteCaptureRegionY}, Width={EditableConfig.RemoteCaptureRegionWidth}, Height={EditableConfig.RemoteCaptureRegionHeight}"
-        : "No preset region saved yet. In PresetRegion mode, phone trigger will wait until you choose and save a region.";
+        ? $"已选区域：横坐标 {EditableConfig.RemoteCaptureRegionX}，纵坐标 {EditableConfig.RemoteCaptureRegionY}，宽度 {EditableConfig.RemoteCaptureRegionWidth}，高度 {EditableConfig.RemoteCaptureRegionHeight}"
+        : "尚未选择截图区域";
 
     public bool HasPromptPresets => PromptPresets.Count > 0;
 
@@ -50,12 +74,19 @@ public sealed class SettingsViewModel : ObservableObject
         ReloadPromptPresets();
     }
 
+    public void UpdateOpacity(double ballOpacity, double windowOpacity)
+    {
+        EditableConfig.BallOpacity = ballOpacity;
+        EditableConfig.WindowOpacity = windowOpacity;
+        RaisePropertyChanged(nameof(EditableConfig));
+    }
+
     public void AddPromptPreset()
     {
         PromptPresets.Add(new PromptPresetEditorViewModel(new PromptPresetConfig
         {
-            Title = $"Preset {PromptPresets.Count + 1}",
-            Prompt = "Describe the problem and answer with explanation, complexity analysis, and code.",
+            Title = $"预设问题 {PromptPresets.Count + 1}",
+            Prompt = "请分析这个问题，说明解决思路、复杂度，并给出代码实现。",
             IsEnabled = true
         }));
         RaisePromptPresetStateChanged();

@@ -2,6 +2,14 @@ namespace FloatingDeskAssistant.Configuration;
 
 public sealed class PersistedAppConfig
 {
+    public bool RememberUserId { get; set; }
+    public string RememberedUserId { get; set; } = "";
+    public BattleConfig? Battle { get; set; }
+    public string SpeechApiKeyProtected { get; set; } = string.Empty;
+    public string SpeechAccessTokenProtected { get; set; } = string.Empty;
+    public ModelRouteConfig? ConversationModels { get; set; }
+    public string ConversationPrimaryApiKeyProtected { get; set; } = string.Empty;
+    public string ConversationSecondaryApiKeyProtected { get; set; } = string.Empty;
     public ModelEndpointConfig Primary { get; set; } = new();
     public ModelEndpointConfig Secondary { get; set; } = new();
     public List<PromptPresetConfig>? PromptPresets { get; set; }
@@ -13,6 +21,7 @@ public sealed class PersistedAppConfig
     public string SecondaryApiKeyProtected { get; set; } = string.Empty;
     public double BallOpacity { get; set; } = 0.28;
     public double WindowOpacity { get; set; } = 0.82;
+    public bool HideFromScreenCapture { get; set; } = true;
     public RemoteCaptureMode RemoteCaptureMode { get; set; } = RemoteCaptureMode.FullDesktop;
     public int RemoteCaptureRegionX { get; set; }
     public int RemoteCaptureRegionY { get; set; }

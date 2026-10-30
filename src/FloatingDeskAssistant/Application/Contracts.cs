@@ -18,6 +18,16 @@ public interface ILoggerService
     void Error(string message, Exception? ex = null);
 }
 
+public interface IWillGoUserValidationService
+{
+    Task<WillGoUserValidationResult> ValidateAsync(string userId, string ip, CancellationToken cancellationToken);
+}
+
+public interface IClientIpResolver
+{
+    string? GetCurrentIpv4Address();
+}
+
 public interface IModelClient
 {
     Task<string> SendAsync(ModelEndpointConfig endpoint, IReadOnlyList<ConversationTurn> turns, CancellationToken cancellationToken);

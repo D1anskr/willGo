@@ -16,7 +16,7 @@
                 CornerRadius="14"
                 BorderBrush="#40FFFFFF"
                 BorderThickness="1"
-                Background="#DD101010">
+                Background="#FF101010">
             <Border Padding="12">
                 <ScrollViewer x:Name="SegmentScrollViewer"
                               VerticalScrollBarVisibility="Auto"
