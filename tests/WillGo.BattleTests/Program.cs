@@ -177,6 +177,22 @@ internal static class Program
                     await displayPeer.ApplyAsync(displayConfig.DualMachine);
                     Check(dataPeer.IsConnected && !battle.IsVisible, "production data service accepts a paired display while its window stays hidden");
                     var main = (MainViewModel)typeof(FloatingDeskAssistant.App).GetField("_mainViewModel", flags)!.GetValue(app)!;
+                    var remoteActions = new ConcurrentQueue<DisplayControlAction>();
+                    displayPeer.DisplayControlReceived += (action, _) => remoteActions.Enqueue(action);
+                    var keys = (GlobalInteractionHotkeys)typeof(FloatingDeskAssistant.App).GetField("_interactionHotkeys", flags)!.GetValue(app)!;
+                    var opacity = (GlobalOpacityHotkeys)typeof(FloatingDeskAssistant.App).GetField("_opacityHotkeys", flags)!.GetValue(app)!;
+                    var originalOpacity = main.WindowOpacity;
+                    ((Action)typeof(GlobalInteractionHotkeys).GetField("_toggleMousePassthrough", flags)!.GetValue(keys)!)();
+                    foreach (var direction in new[] { -1, 1 })
+                        ((Action<int>)typeof(GlobalInteractionHotkeys).GetField("_selectQuestion", flags)!.GetValue(keys)!)(direction);
+                    foreach (var direction in new[] { -1, 1 })
+                        ((Action<int>)typeof(GlobalInteractionHotkeys).GetField("_scrollConversation", flags)!.GetValue(keys)!)(direction);
+                    foreach (var delta in new[] { -.05, .05 })
+                        ((Action<double>)typeof(GlobalOpacityHotkeys).GetField("_adjustOpacity", flags)!.GetValue(opacity)!)(delta);
+                    await Until(() => remoteActions.Count == 7);
+                    Check(remoteActions.SequenceEqual(Enum.GetValues<DisplayControlAction>()), "all production data hotkey callbacks forward the intended display actions in order");
+                    Check(!WindowInteraction.IsClickThrough && main.WindowOpacity == originalOpacity && !battle.IsVisible,
+                        "forwarded hotkeys leave data opacity, mouse interaction and hidden workspace unchanged");
                     var single = main.GetConfigSnapshot(); single.DualMachine.Enabled = false;
                     typeof(MainViewModel).GetField("_config", flags)!.SetValue(main, single);
                     await (Task)typeof(FloatingDeskAssistant.App).GetMethod("ApplyDualMachineModeAsync", flags)!.Invoke(app, new object[] { single })!;
@@ -292,12 +308,63 @@ internal static class Program
                 Check(battle.IsVisible && !vm.IsRecording && speech.Starts == 1 &&
                     (GetWindowLongPtr(new WindowInteropHelper(battle).Handle, -20).ToInt64() & 0x40080) == 0x80,
                     "tray restore retains tool-window identity without turning recognition back on");
+                await TestRemoteDisplayControlsAsync(app, main, battle, vm);
                 Console.WriteLine($"PASS: {_checks} full application startup checks");
             }
             catch (Exception ex) { result = 1; Console.Error.WriteLine(ex); }
             finally { await (Task)typeof(FloatingDeskAssistant.App).GetMethod("ExitAppAsync", flags)!.Invoke(app, null)!; }
         };
         timer.Start(); app.Run(); return result;
+    }
+
+    private static async Task TestRemoteDisplayControlsAsync(FloatingDeskAssistant.App app, MainViewModel main, BattleWindow battle, BattleViewModel vm)
+    {
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var dataConfig = AppConfig.CreateDefault();
+        dataConfig.DualMachine = new() { Enabled = true, Role = DualMachineRole.Data, Port = DualMachineFreePort() };
+        await using var data = new DualMachineService(() => dataConfig, new FakeScreenshots(), DualMachineIdentity.Create);
+        await data.ApplyAsync(dataConfig.DualMachine);
+        var snapshot = main.GetConfigSnapshot();
+        snapshot.DualMachine = new() { Enabled = true, Role = DualMachineRole.Display,
+            PeerOffer = (DualMachineOffer.Parse(data.PairingOffers.First()) with { Host = "127.0.0.1" }).ToString() };
+        typeof(MainViewModel).GetField("_config", flags)!.SetValue(main, snapshot);
+        await (Task)typeof(FloatingDeskAssistant.App).GetMethod("ApplyDualMachineModeAsync", flags)!.Invoke(app, new object[] { snapshot })!;
+        await Until(() => data.IsConnected);
+        void Send(DisplayControlAction action) { if (!data.TrySendDisplayControl(action, out var error)) throw new InvalidOperationException(error); }
+        vm.Selected = vm.Entries[0];
+        Send(DisplayControlAction.NextQuestion);
+        await Until(() => vm.Selected == vm.Entries[1]);
+        Send(DisplayControlAction.PreviousQuestion);
+        await Until(() => vm.Selected == vm.Entries[0]);
+        Check(true, "production display receiver switches questions in both directions");
+        vm.Selected!.Answer = string.Join("\n\n", Enumerable.Range(1, 100).Select(i => $"Long answer paragraph {i}"));
+        await Task.Delay(100); battle.UpdateLayout();
+        var scroll = (ScrollViewer)battle.FindName("AnswerScroll");
+        scroll.ScrollToTop(); await Task.Delay(50);
+        Send(DisplayControlAction.ScrollDown);
+        await Until(() => scroll.VerticalOffset > 0);
+        var offset = scroll.VerticalOffset;
+        Send(DisplayControlAction.ScrollUp);
+        await Until(() => scroll.VerticalOffset < offset);
+        Check(true, "production display receiver scrolls the actual answer viewport in both directions");
+        var opacity = main.WindowOpacity;
+        Send(DisplayControlAction.DecreaseOpacity);
+        await Until(() => Math.Abs(main.WindowOpacity - Math.Max(.3, opacity - .05)) < .001);
+        await Until(() => ((LoginTests.MemoryConfig)typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.GetValue(app)!).Saved!.WindowOpacity == main.WindowOpacity);
+        Send(DisplayControlAction.IncreaseOpacity);
+        await Until(() => Math.Abs(main.WindowOpacity - Math.Min(1, Math.Max(.3, opacity - .05) + .05)) < .001);
+        Check(true, "remote opacity uses the original five-percent steps and persists display settings");
+        Send(DisplayControlAction.ToggleClickThrough);
+        await Until(() => WindowInteraction.IsClickThrough);
+        Send(DisplayControlAction.ToggleClickThrough);
+        await Until(() => !WindowInteraction.IsClickThrough);
+        Check(battle.IsVisible, "remote mouse passthrough toggles twice without hiding the display window");
+    }
+
+    private static int DualMachineFreePort()
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start(); var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port;
     }
 
     private static int TestLoginExit(bool forgedResult)

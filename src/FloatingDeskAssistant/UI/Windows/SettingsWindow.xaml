@@ -193,6 +193,7 @@
                             <GroupBox Header="局域网双机模式"><StackPanel>
                                 <TextBlock Style="{StaticResource GuideText}" Text="在两台电脑的“双机模式”中开启功能：采集电脑选择数据端并保存，通过托盘设置复制配对信息；另一台选择显示端，粘贴完整配对信息并保存。首次连接需允许数据端的专用网络防火墙访问。" />
                                 <TextBlock Style="{StaticResource GuideText}" Text="数据端设置截图范围和音频设备，登录后后台运行；显示端配置语音和问答密钥、提示词、触发词及保存目录。显示端点击开始战斗才开始采集数据端音频。两端 Ctrl+Shift+S 都截取数据端画面，在显示端提取题目并回答。" />
+                                <TextBlock Style="{StaticResource GuideText}" Text="两端均安装 2.0.1 或更新版本后，数据端的 Ctrl+1、Ctrl+Shift+上/下、Ctrl+Shift+左/右和 Ctrl+上/下，会实时控制显示端的鼠标穿透、问题切换、透明度和答案滚动；无需开启语音。显示端自己的快捷键仍可正常使用。断线期间按键不生效，重连后不会补发。" />
                                 <TextBlock Style="{StaticResource GuideText}" Text="断线会停止采集，重新连接后需再次开始战斗；关闭双机模式恢复本机采集。配对信息包含连接凭据，请仅提供给要连接的电脑。" />
                             </StackPanel></GroupBox>
                             <TextBlock x:Name="GuideSaveNote" Style="{StaticResource GuideText}" Foreground="#FF616B73" Margin="0,0,0,18"><Bold>保存与取消：</Bold>“保存设置”应用修改；“取消”或 Esc 放弃本次修改。“恢复默认”先重置当前编辑内容，保存后才生效，使用前留意密钥和自定义提示词。</TextBlock>
@@ -270,6 +271,7 @@
                                 <StackPanel>
                                     <ComboBox x:Name="DualMachineRoleBox" ItemsSource="{Binding DualMachineRoles}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedDualMachineRole}" Margin="0,0,0,12" />
                                     <TextBlock Text="数据端负责截图、麦克风和系统播放采集；显示端负责云端识别、模型回答与记录保存。关闭双机模式即恢复本机采集。" TextWrapping="Wrap" Foreground="#FF616B73" />
+                                    <TextBlock Text="数据端的全局快捷键会控制显示端窗口（切题、滚动、透明度、鼠标穿透）；截图快捷键采集数据端画面并传送。两端需更新至 2.0.1 或更新版本。" TextWrapping="Wrap" Foreground="#FF616B73" Margin="0,8,0,0" />
                                 </StackPanel>
                             </GroupBox>
                             <GroupBox Header="数据端配对" Visibility="{Binding IsDataRole, Converter={StaticResource BoolToVisibility}}">

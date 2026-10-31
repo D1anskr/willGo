@@ -9,7 +9,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\\willGo.ico</ApplicationIcon>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <Product>willGo</Product>
   </PropertyGroup>
   <ItemGroup>

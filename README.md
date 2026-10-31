@@ -5,6 +5,9 @@ It supports screenshot-based sending, local image attachment, configurable model
 
 ## Current Version Baseline
 
+The [2.0.1 remote shortcut guide](docs/release-2.0.1.md) describes forwarding
+data-computer shortcuts to the paired display computer, alongside audio and screenshots.
+
 The [2.0.0 LAN dual-machine guide](docs/release-2.0.0.md) describes pairing,
 the background data endpoint, display endpoint, audio and screenshot transport,
 and how to retain standalone operation.

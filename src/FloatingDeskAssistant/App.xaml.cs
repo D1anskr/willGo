@@ -43,6 +43,7 @@ public partial class App : System.Windows.Application
     private DualMachineService? _dualMachine;
     private readonly SemaphoreSlim _modeChangeGate = new(1, 1);
     private string _appliedDualMachineKey = "";
+    private DateTime _lastControlNotice;
     private bool _exiting;
     private bool _authenticated;
 
@@ -232,6 +233,11 @@ public partial class App : System.Windows.Application
         {
             if (!_exiting && _mainViewModel.GetConfigSnapshot().DualMachine.IsDisplay) _battleViewModel?.AddSentence(SpeechSource.Speaker, text, true);
         });
+        _dualMachine.DisplayControlReceived += (action, connectionClosed) => Dispatcher.BeginInvoke(() =>
+        {
+            if (!_exiting && !connectionClosed.IsCancellationRequested && _mainViewModel.GetConfigSnapshot().DualMachine.IsDisplay)
+                ExecuteDisplayControl(action);
+        });
         var routedScreenshots = new ModeAwareScreenshotService(screenshotService, _dualMachine, _mainViewModel.GetConfigSnapshot);
         _battleViewModel = new BattleViewModel(new ModeAwareBattleSpeechService(_dualMachine, _mainViewModel.GetConfigSnapshot), modelRouter, _mainViewModel.GetConfigSnapshot, Dispatcher, routedScreenshots);
         _battleViewModel.RecordingChanged += recording =>
@@ -264,7 +270,7 @@ public partial class App : System.Windows.Application
             if (_battleWindow.IsVisible && _mainViewModel.GetConfigSnapshot().DualMachine.IsData) _battleWindow.Hide();
         };
         _trayIcon = new TrayIconService(ShowWorkspace, OpenSettingsFromTray,
-            () => WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough), async () => await ExitAppAsync());
+            () => RouteHotkey(DisplayControlAction.ToggleClickThrough), async () => await ExitAppAsync());
         InitializeOpacityHotkeys();
         InitializeInteractionHotkeys();
         var navigationReady = _interactionHotkeys!.SetQuestionNavigationEnabled(true);
@@ -279,14 +285,11 @@ public partial class App : System.Windows.Application
     private void InitializeInteractionHotkeys()
     {
         _interactionHotkeys = new GlobalInteractionHotkeys(
-            () => WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough),
-            direction =>
-            {
-                _battleWindow?.ScrollConversation(direction);
-            }, () =>
+            () => RouteHotkey(DisplayControlAction.ToggleClickThrough),
+            direction => RouteHotkey(direction < 0 ? DisplayControlAction.ScrollUp : DisplayControlAction.ScrollDown), () =>
             {
                 _ = CaptureForCurrentModeAsync();
-            }, direction => _battleViewModel?.SelectQuestion(direction));
+            }, direction => RouteHotkey(direction < 0 ? DisplayControlAction.PreviousQuestion : DisplayControlAction.NextQuestion));
         if (_interactionHotkeys.RegistrationErrors.Count > 0)
         {
             var message = string.Join(Environment.NewLine, _interactionHotkeys.RegistrationErrors);
@@ -322,25 +325,52 @@ public partial class App : System.Windows.Application
 
         try
         {
-            _opacityHotkeys = new GlobalOpacityHotkeys(delta =>
-            {
-                if (_mainViewModel is null)
-                {
-                    return;
-                }
-
-                _mainViewModel.AdjustOpacity(delta);
-                _settingsWindow?.UpdateOpacity(_mainViewModel.BallOpacity, _mainViewModel.WindowOpacity);
-                _opacityDirty = true;
-                _opacitySaveTimer.Stop();
-                _opacitySaveTimer.Start();
-            });
+            _opacityHotkeys = new GlobalOpacityHotkeys(delta => RouteHotkey(delta < 0 ? DisplayControlAction.DecreaseOpacity : DisplayControlAction.IncreaseOpacity));
         }
         catch (Exception ex)
         {
             _logger?.Error("Global opacity hotkeys are unavailable.", ex);
             MessageBox.Show(ex.Message, "willGo opacity hotkeys", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+    }
+
+    private void RouteHotkey(DisplayControlAction action)
+    {
+        if (!_authenticated || _exiting || _mainViewModel is null) return;
+        if (!_mainViewModel.GetConfigSnapshot().DualMachine.IsData)
+        {
+            ExecuteDisplayControl(action);
+            return;
+        }
+        if (_dualMachine!.TrySendDisplayControl(action, out var error)) return;
+        _battleViewModel?.ReportStatus(error);
+        if (DateTime.UtcNow - _lastControlNotice < TimeSpan.FromSeconds(5)) return;
+        _lastControlNotice = DateTime.UtcNow;
+        _trayIcon?.ShowNotice(error);
+    }
+
+    private void ExecuteDisplayControl(DisplayControlAction action)
+    {
+        switch (action)
+        {
+            case DisplayControlAction.ToggleClickThrough: WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough); break;
+            case DisplayControlAction.PreviousQuestion: _battleViewModel?.SelectQuestion(-1); break;
+            case DisplayControlAction.NextQuestion: _battleViewModel?.SelectQuestion(1); break;
+            case DisplayControlAction.ScrollUp: _battleWindow?.ScrollConversation(-1); break;
+            case DisplayControlAction.ScrollDown: _battleWindow?.ScrollConversation(1); break;
+            case DisplayControlAction.DecreaseOpacity: AdjustDisplayOpacity(-.05); break;
+            case DisplayControlAction.IncreaseOpacity: AdjustDisplayOpacity(.05); break;
+        }
+    }
+
+    private void AdjustDisplayOpacity(double delta)
+    {
+        if (_mainViewModel is null || _opacitySaveTimer is null) return;
+        _mainViewModel.AdjustOpacity(delta);
+        _settingsWindow?.UpdateOpacity(_mainViewModel.BallOpacity, _mainViewModel.WindowOpacity);
+        _opacityDirty = true;
+        _opacitySaveTimer.Stop();
+        _opacitySaveTimer.Start();
     }
 
     private void TryStartRemoteCaptureServer()
@@ -514,7 +544,7 @@ public partial class App : System.Windows.Application
             _appliedDualMachineKey = key;
             _battleViewModel.CancelRequests();
             if (_battleViewModel.IsRecording || _battleViewModel.IsStarting) await _battleViewModel.StopCaptureAsync();
-            if (options.IsData) { _battleWindow.Hide(); _historyWindow?.Close(); }
+            if (options.IsData) { WindowInteraction.SetClickThrough(false); _battleWindow.Hide(); _historyWindow?.Close(); }
             try { await _dualMachine.ApplyAsync(options); }
             catch (Exception ex) { _logger?.Error("Dual-machine setup failed.", ex); }
             _battleViewModel.ReportStatus(_dualMachine.Status);

@@ -84,9 +84,11 @@ public sealed class DualMachineIdentity : IDisposable
     public void Dispose() => Certificate.Dispose();
 }
 
-public enum PeerFrameKind : byte { Hello = 1, Welcome, Command, Reply, Microphone, Speaker, ImageStart, ImageChunk, ImageEnd, Ping, Pong }
+public enum PeerFrameKind : byte { Hello = 1, Welcome, Command, Reply, Microphone, Speaker, ImageStart, ImageChunk, ImageEnd, Ping, Pong, DisplayControl }
+public enum DisplayControlAction { ToggleClickThrough = 1, PreviousQuestion, NextQuestion, ScrollUp, ScrollDown, DecreaseOpacity, IncreaseOpacity }
+public sealed record PeerDisplayControl(long Sequence, DisplayControlAction Action);
 public sealed record PeerFrame(PeerFrameKind Kind, byte[] Payload);
-public sealed record PeerControl(Guid Id = default, string Command = "", Guid Session = default, string Error = "", string Name = "", int Size = 0, string Secret = "", int Version = 1);
+public sealed record PeerControl(Guid Id = default, string Command = "", Guid Session = default, string Error = "", string Name = "", int Size = 0, string Secret = "", int Version = 1, int DisplayControlVersion = 0);
 public sealed record PeerReply(PeerControl Control, byte[]? Image = null);
 public sealed record PeerAudio(Guid Session, SpeechSource Source, long Sequence, byte[] Pcm);
 
@@ -97,6 +99,14 @@ public static class DualMachineProtocol
     public const int ImageChunkBytes = 48 * 1024;
     public static byte[] Encode(PeerControl control) => JsonSerializer.SerializeToUtf8Bytes(control);
     public static PeerControl Decode(byte[] payload) => JsonSerializer.Deserialize<PeerControl>(payload) ?? throw new InvalidDataException("双机控制消息为空。");
+    public static byte[] EncodeDisplayControl(PeerDisplayControl control) => JsonSerializer.SerializeToUtf8Bytes(control);
+    public static PeerDisplayControl DecodeDisplayControl(byte[] payload)
+    {
+        var control = JsonSerializer.Deserialize<PeerDisplayControl>(payload);
+        if (control is null || control.Sequence <= 0 || !Enum.IsDefined(control.Action))
+            throw new InvalidDataException("远程快捷键指令无效。");
+        return control;
+    }
 
     public static async Task<PeerFrame> ReadAsync(Stream stream, CancellationToken token)
     {

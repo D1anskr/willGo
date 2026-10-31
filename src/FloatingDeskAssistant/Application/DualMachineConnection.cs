@@ -17,13 +17,37 @@ internal sealed class DualMachineConnection : IAsyncDisposable
     private Task _running = Task.CompletedTask;
     private int _aborted;
     private int _disposed;
+    private readonly object _controlGate = new();
+    private long _sentControl;
+    private long _receivedControl;
+    public CancellationToken ClosedToken => _lifetime.Token;
+    public bool SupportsDisplayControl { get; }
 
-    public DualMachineConnection(TcpClient client, SslStream stream, Func<PeerFrame, Task> receive, Action<Exception?> closed)
+    public DualMachineConnection(TcpClient client, SslStream stream, Func<PeerFrame, Task> receive, Action<Exception?> closed, bool supportsDisplayControl)
     {
         _client = client; _stream = stream; _receive = receive; _closed = closed;
+        SupportsDisplayControl = supportsDisplayControl;
     }
 
     public void Start() => _running = RunAsync();
+
+    public bool TrySendDisplayControl(DisplayControlAction action)
+    {
+        lock (_controlGate)
+        {
+            if (_lifetime.IsCancellationRequested) return false;
+            var payload = DualMachineProtocol.EncodeDisplayControl(new(_sentControl + 1, action));
+            if (!_outgoing.Writer.TryWrite(new(new(PeerFrameKind.DisplayControl, payload)))) return false;
+            _sentControl++;
+            return true;
+        }
+    }
+
+    public void AcceptDisplayControl(PeerDisplayControl control)
+    {
+        if (control.Sequence != _receivedControl + 1) throw new InvalidDataException("远程快捷键顺序异常，请重新连接。");
+        _receivedControl = control.Sequence;
+    }
 
     public async Task SendAsync(PeerFrameKind kind, byte[] payload, CancellationToken token = default)
     {

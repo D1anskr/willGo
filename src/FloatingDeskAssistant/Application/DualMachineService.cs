@@ -60,6 +60,7 @@ public sealed class DualMachineService : IAsyncDisposable
     public event Action<Guid, string>? AudioFailed;
     public event Action<ScreenshotCaptureResult>? ScreenshotReceived;
     public event Action<string>? TextReceived;
+    public event Action<DisplayControlAction, CancellationToken>? DisplayControlReceived;
     public void AbortConnection() => _connection?.Abort();
 
     private void SetStatus(string value) { Status = value; StateChanged?.Invoke(); }
@@ -151,11 +152,11 @@ public sealed class DualMachineService : IAsyncDisposable
                     throw new AuthenticationException("配对凭据不匹配。");
                 var error = IsConnected ? "数据端已连接另一台显示端，请先断开原连接。" : "";
                 await DualMachineProtocol.WriteAsync(stream, new(PeerFrameKind.Welcome,
-                    DualMachineProtocol.Encode(new(Name: Environment.MachineName, Error: error))), timeout.Token).ConfigureAwait(false);
+                    DualMachineProtocol.Encode(new(Name: Environment.MachineName, Error: error, DisplayControlVersion: 1))), timeout.Token).ConfigureAwait(false);
                 if (error.Length != 0) { stream.Dispose(); client.Dispose(); continue; }
                 timeout.Token.ThrowIfCancellationRequested();
                 if (generation != _generation) throw new OperationCanceledException();
-                InstallConnection(client, stream, hello.Name, generation);
+                InstallConnection(client, stream, hello.Name, generation, hello.DisplayControlVersion == 1);
                 client = null; stream = null;
             }
             catch (Exception) when (!token.IsCancellationRequested)
@@ -182,22 +183,22 @@ public sealed class DualMachineService : IAsyncDisposable
                 TargetHost = "willGo-data", EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
                 CertificateRevocationCheckMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck
             }, timeout.Token).ConfigureAwait(false);
-            await DualMachineProtocol.WriteAsync(stream, new(PeerFrameKind.Hello, DualMachineProtocol.Encode(new(Secret: offer.Secret, Name: Environment.MachineName))), timeout.Token).ConfigureAwait(false);
+            await DualMachineProtocol.WriteAsync(stream, new(PeerFrameKind.Hello, DualMachineProtocol.Encode(new(Secret: offer.Secret, Name: Environment.MachineName, DisplayControlVersion: 1))), timeout.Token).ConfigureAwait(false);
             var frame = await DualMachineProtocol.ReadAsync(stream, timeout.Token).ConfigureAwait(false);
             var welcome = DualMachineProtocol.Decode(frame.Payload);
             if (frame.Kind != PeerFrameKind.Welcome || welcome.Version != 1) throw new InvalidDataException("两端版本不兼容，请安装同一版本。");
             if (welcome.Error.Length > 0) throw new InvalidOperationException(welcome.Error);
             if (generation != _generation) throw new OperationCanceledException();
-            InstallConnection(client, stream, welcome.Name, generation);
+            InstallConnection(client, stream, welcome.Name, generation, welcome.DisplayControlVersion == 1);
         }
         catch { stream?.Dispose(); client.Dispose(); throw; }
     }
 
-    private void InstallConnection(TcpClient client, SslStream stream, string name, long generation)
+    private void InstallConnection(TcpClient client, SslStream stream, string name, long generation, bool supportsDisplayControl)
     {
         DualMachineConnection? connection = null;
         connection = new(client, stream, frame => ReceiveAsync(connection!, generation, frame),
-            error => TrackOperation(() => HandleClosedAsync(connection!, generation, error)));
+            error => TrackOperation(() => HandleClosedAsync(connection!, generation, error)), supportsDisplayControl);
         _connection = connection;
         PeerName = name.Length > 80 ? name[..80] : name;
         SetStatus($"{(IsData ? "数据端" : "显示端")}已连接 · {PeerName}");
@@ -236,6 +237,12 @@ public sealed class DualMachineService : IAsyncDisposable
         }
         switch (frame.Kind)
         {
+            case PeerFrameKind.DisplayControl:
+                if (!connection.SupportsDisplayControl) throw new InvalidDataException("对端未协商远程快捷键能力。");
+                var control = DualMachineProtocol.DecodeDisplayControl(frame.Payload);
+                connection.AcceptDisplayControl(control);
+                DisplayControlReceived?.Invoke(control.Action, connection.ClosedToken);
+                break;
             case PeerFrameKind.Microphone:
             case PeerFrameKind.Speaker:
                 AudioReceived?.Invoke(DualMachineProtocol.DecodeAudio(frame));
@@ -418,6 +425,20 @@ public sealed class DualMachineService : IAsyncDisposable
         if (!IsData || _connection is not { } connection) throw new InvalidOperationException("数据端尚未连接显示端。");
         if (string.IsNullOrWhiteSpace(text) || text.Length > 8000) throw new ArgumentException("问题必须为 1 到 8000 个字符。");
         await connection.SendAsync(PeerFrameKind.Reply, DualMachineProtocol.Encode(new(Command: "text-question", Name: text)), token).ConfigureAwait(false);
+    }
+
+    public bool TrySendDisplayControl(DisplayControlAction action, out string error)
+    {
+        error = "";
+        if (!Enum.IsDefined(action)) { error = "不支持的快捷键操作。"; return false; }
+        if (!IsData || _connection is not { } connection)
+        { error = "数据端尚未连接显示端，快捷键操作未发送。"; return false; }
+        if (!connection.SupportsDisplayControl)
+        { error = "显示端不支持远程快捷键，请将两端更新至 2.0.1 或更新版本。"; return false; }
+        if (connection.TrySendDisplayControl(action)) return true;
+        connection.Abort();
+        error = "快捷键发送队列已满或连接断开，请重新连接。";
+        return false;
     }
 
     private async Task SendScreenshotAsync(DualMachineConnection connection, long generation, Guid id, bool push, CancellationToken token = default)

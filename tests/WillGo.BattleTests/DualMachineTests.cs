@@ -3,6 +3,9 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -65,6 +68,11 @@ internal static class DualMachineTests
         var packet = DualMachineProtocol.DecodeAudio(new(PeerFrameKind.Speaker, DualMachineProtocol.EncodeAudio(session, 17, new byte[3200])));
         check(packet.Session == session && packet.Source == SpeechSource.Speaker && packet.Sequence == 17 && packet.Pcm.Length == 3200,
             "dual: wire format preserves session, source, sequence and PCM bytes");
+        foreach (var invalid in new[] { "null", "{}", "{\"Sequence\":1}", "{\"Sequence\":0,\"Action\":1}", "{\"Sequence\":1,\"Action\":999}" })
+            check(await RejectAsync(() => Task.FromResult(DualMachineProtocol.DecodeDisplayControl(Encoding.UTF8.GetBytes(invalid)))),
+                "dual: malformed display control rejected: " + invalid);
+        check(DualMachineProtocol.Decode(Encoding.UTF8.GetBytes("{\"Version\":1}")).DisplayControlVersion == 0,
+            "dual: legacy handshake does not advertise remote shortcut support");
 
         var directory = Path.Combine(AppContext.BaseDirectory, "dual-machine-test", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -102,6 +110,11 @@ internal static class DualMachineTests
                 var capture = new Capture(send, failed); captures.Enqueue(capture); return capture;
             });
         await using var display = new DualMachineService(() => displayConfig, localDisplayScreenshot, DualMachineIdentity.Create);
+        var controls = new ConcurrentQueue<DisplayControlAction>();
+        var controlTokens = new ConcurrentQueue<CancellationToken>();
+        display.DisplayControlReceived += (action, closed) => { controls.Enqueue(action); controlTokens.Enqueue(closed); };
+        check(!data.TrySendDisplayControl(DisplayControlAction.ScrollDown, out _) && !display.TrySendDisplayControl(DisplayControlAction.ScrollDown, out _),
+            "dual: controls require an active data-to-display connection");
         await data.ApplyAsync(dataConfig.DualMachine);
         var offer = DualMachineOffer.Parse(data.PairingOffers.First()) with { Host = "127.0.0.1" };
         check(DualMachineOffer.Parse(offer.ToString()) == offer && !data.IsAudioStreaming,
@@ -124,6 +137,13 @@ internal static class DualMachineTests
         await display.ApplyAsync(displayConfig.DualMachine);
         await UntilAsync(() => data.IsConnected);
         check(data.IsConnected && display.IsConnected && !data.IsAudioStreaming, "dual: authenticated TLS pairing connects exactly two roles, without auto-recording");
+        var actions = Enum.GetValues<DisplayControlAction>();
+        foreach (var action in actions) check(data.TrySendDisplayControl(action, out _), "dual: sends " + action + " while speech is off");
+        await UntilAsync(() => controls.Count == actions.Length);
+        check(controls.SequenceEqual(actions) && controlTokens.All(token => !token.IsCancellationRequested),
+            "dual: every display action arrives exactly once in order with a live connection token");
+        check(!display.TrySendDisplayControl(DisplayControlAction.ToggleClickThrough, out _) && !data.TrySendDisplayControl((DisplayControlAction)999, out _),
+            "dual: display cannot route controls backwards and unknown actions are rejected");
         await using (var extra = new DualMachineService(() => displayConfig, localDisplayScreenshot, DualMachineIdentity.Create))
             check(await RejectAsync(() => extra.ApplyAsync(displayConfig.DualMachine)) && data.IsConnected && display.IsConnected,
                 "dual: second display rejected without replacing connected peer");
@@ -140,7 +160,12 @@ internal static class DualMachineTests
             var sequences = audio.Where(item => item.Source == source).Select(item => item.Sequence).ToArray();
             check(sequences.SequenceEqual(Enumerable.Range(1, sequences.Length).Select(i => (long)i)), "dual: monotonic audio sequence for " + source);
         }
-        var received = await display.RequestScreenshotAsync(CancellationToken.None);
+        var receivingImage = display.RequestScreenshotAsync(CancellationToken.None);
+        var burst = Enumerable.Range(0, 70).Select(i => actions[i % actions.Length]).ToArray();
+        foreach (var action in burst) if (!data.TrySendDisplayControl(action, out var error)) throw new InvalidOperationException(error);
+        var received = await receivingImage;
+        await UntilAsync(() => controls.Count == actions.Length + burst.Length);
+        check(controls.Skip(actions.Length).SequenceEqual(burst), "dual: held-key burst preserves all 70 actions in order while audio and image chunks stream");
         check(received!.ImageBytes.SequenceEqual(screenshot.Png) && screenshot.Region == new System.Drawing.Rectangle(123, 234, 640, 480),
             "dual: screenshot chunks reassemble exactly and use data endpoint region");
         check(audio.Count >= 6 && data.IsAudioStreaming, "dual: screenshot requests preserve active audio capture");
@@ -224,6 +249,9 @@ internal static class DualMachineTests
                 "dual: display screenshot ignores its invalid local region and renders extraction plus answer from data endpoint");
             display.AbortConnection();
             await UntilAsync(() => !vm.IsRecording && !data.IsAudioStreaming);
+            await UntilAsync(() => !data.IsConnected && controlTokens.All(token => token.IsCancellationRequested));
+            check(!data.TrySendDisplayControl(DisplayControlAction.ToggleClickThrough, out _),
+                "dual: disconnect cancels queued UI work and rejects new controls without buffering");
             check(vm.Status.Contains("断开") || vm.Status.Contains("重置"), "dual: disconnect visibly ends workspace recording and finalizes archive");
             var calls = localDisplayScreenshot.Calls;
             check(await RejectAsync(() => adapter.CaptureFullDesktopAsync(CancellationToken.None)) && localDisplayScreenshot.Calls == calls,
@@ -237,11 +265,26 @@ internal static class DualMachineTests
         await display.ApplyAsync(displayConfig.DualMachine, force: true);
         await UntilAsync(() => data.IsConnected);
         check(display.IsConnected && !data.IsAudioStreaming, "dual: reconnect returns to paired standby without resuming microphones");
+        var controlCount = controls.Count;
+        check(data.TrySendDisplayControl(DisplayControlAction.NextQuestion, out _), "dual: new connection accepts controls from sequence one");
+        await UntilAsync(() => controls.Count == controlCount + 1);
+        await Task.Delay(100);
+        check(controls.Count == controlCount + 1 && controls.Last() == DisplayControlAction.NextQuestion,
+            "dual: reconnect sends only the new action and never replays disconnected keystrokes");
         await CheckSettingsAsync(displayConfig, display, directory, check);
         displayConfig.DualMachine.Enabled = false;
         await display.ApplyAsync(displayConfig.DualMachine);
         await UntilAsync(() => !data.IsConnected);
         check(display.Status == "单机模式" && !data.IsAudioStreaming, "dual: leaving display role disconnects and keeps remote devices stopped");
+        using var legacyClient = new TcpClient();
+        await legacyClient.ConnectAsync(offer.Host, offer.Port);
+        using var legacyStream = new SslStream(legacyClient.GetStream(), false, (_, cert, _, _) => offer.MatchesCertificate(cert));
+        await legacyStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = "willGo-data", EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13 });
+        await DualMachineProtocol.WriteAsync(legacyStream, new(PeerFrameKind.Hello, DualMachineProtocol.Encode(new(Secret: offer.Secret, Name: "legacy-2.0.0"))), CancellationToken.None);
+        var welcome = await DualMachineProtocol.ReadAsync(legacyStream, CancellationToken.None);
+        await UntilAsync(() => data.IsConnected);
+        check(welcome.Kind == PeerFrameKind.Welcome && !data.TrySendDisplayControl(DisplayControlAction.ScrollDown, out var upgrade) && upgrade.Contains("2.0.1") && data.IsConnected,
+            "dual: legacy display stays paired but shortcut forwarding requires an explicit upgrade");
     }
 
     private static async Task CheckSettingsAsync(AppConfig config, DualMachineService peer, string directory, Action<bool, string> check)
