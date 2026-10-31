@@ -248,7 +248,7 @@ internal static class DoubaoCloudTests
         return bytes;
     }
 
-    private sealed class Session
+    internal sealed class Session
     {
         public string? ApiKey, AppId, AccessToken, Resource;
         public int AudioBytes;
@@ -256,7 +256,7 @@ internal static class DoubaoCloudTests
         public bool NonzeroAudio;
     }
 
-    private sealed class FakeServer : IAsyncDisposable
+    internal sealed class FakeServer : IAsyncDisposable
     {
         private readonly HttpListener _listener = new();
         private readonly CancellationTokenSource _stop = new();

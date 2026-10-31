@@ -40,6 +40,9 @@ public partial class App : System.Windows.Application
     private TrayIconService? _trayIcon;
     private BattleViewModel? _battleViewModel;
     private BattleWindow? _battleWindow;
+    private DualMachineService? _dualMachine;
+    private readonly SemaphoreSlim _modeChangeGate = new(1, 1);
+    private string _appliedDualMachineKey = "";
     private bool _exiting;
     private bool _authenticated;
 
@@ -136,10 +139,12 @@ public partial class App : System.Windows.Application
             TraceStartup("Login validation passed");
             TraceStartup("InitializeWindows start");
             InitializeWindows(config);
+            await ApplyDualMachineModeAsync(config);
             TraceStartup("RemoteCapture start");
             TryStartRemoteCaptureServer();
             TraceStartup("BattleWindow.Show start");
-            ShowWorkspace();
+            if (!config.DualMachine.IsData) ShowWorkspace();
+            else _trayIcon?.ShowNotice(_dualMachine!.Status);
             TraceStartup("BattleWindow.Show done");
         }
         catch (Exception ex)
@@ -206,17 +211,40 @@ public partial class App : System.Windows.Application
             }
             _battleWindow?.UpdateConfig(updated);
             _historyWindow?.UpdateConfig(updated);
+            _ = ApplyDualMachineModeAsync(updated);
         };
 
         _mainViewModel.OpenSettingsDialogAsync = OpenSettingsDialogAsync;
-        _battleViewModel = new BattleViewModel(new BattleSpeechService(() => _mainViewModel.GetConfigSnapshot().Battle), modelRouter, _mainViewModel.GetConfigSnapshot, Dispatcher, screenshotService);
+        _dualMachine = new DualMachineService(_mainViewModel.GetConfigSnapshot, screenshotService);
+        _dualMachine.StateChanged += () => Dispatcher.BeginInvoke(() =>
+        {
+            if (_exiting || _battleViewModel is null) return;
+            _battleViewModel.ConnectionStatus = _mainViewModel.GetConfigSnapshot().DualMachine.Enabled ? _dualMachine.Status : "";
+            _trayIcon?.SetConnectionStatus(_mainViewModel.GetConfigSnapshot().DualMachine.IsData, _dualMachine.Status, _dualMachine.IsAudioStreaming);
+            if (!_battleViewModel.IsRecording && !_battleViewModel.IsStarting && _mainViewModel.GetConfigSnapshot().DualMachine.Enabled)
+                _battleViewModel.ReportStatus(_dualMachine.Status);
+        });
+        _dualMachine.ScreenshotReceived += image => Dispatcher.BeginInvoke(() =>
+        {
+            if (!_exiting && _mainViewModel.GetConfigSnapshot().DualMachine.IsDisplay) _battleViewModel?.AddScreenshot(image);
+        });
+        _dualMachine.TextReceived += text => Dispatcher.BeginInvoke(() =>
+        {
+            if (!_exiting && _mainViewModel.GetConfigSnapshot().DualMachine.IsDisplay) _battleViewModel?.AddSentence(SpeechSource.Speaker, text, true);
+        });
+        var routedScreenshots = new ModeAwareScreenshotService(screenshotService, _dualMachine, _mainViewModel.GetConfigSnapshot);
+        _battleViewModel = new BattleViewModel(new ModeAwareBattleSpeechService(_dualMachine, _mainViewModel.GetConfigSnapshot), modelRouter, _mainViewModel.GetConfigSnapshot, Dispatcher, routedScreenshots);
         _battleViewModel.RecordingChanged += recording =>
         {
             _trayIcon?.SetRecording(recording);
             _historyWindow?.SetVoiceActive(recording);
         };
-        _mainViewModel.CaptureScreenshotOverride = _battleViewModel.CaptureScreenshotAsync;
-        _mainViewModel.RemotePromptOverride = text => _battleViewModel.AddSentence(SpeechSource.Speaker, text, true);
+        _mainViewModel.CaptureScreenshotOverride = CaptureForCurrentModeAsync;
+        _mainViewModel.RemotePromptOverride = text =>
+        {
+            if (_mainViewModel.GetConfigSnapshot().DualMachine.IsData) _ = ForwardDataTextAsync(text);
+            else _battleViewModel.AddSentence(SpeechSource.Speaker, text, true);
+        };
         _battleWindow = new BattleWindow(_battleViewModel, _mainViewModel.GetConfigSnapshot());
         _battleViewModel.ConfirmAudioRecording = () =>
         {
@@ -231,6 +259,10 @@ public partial class App : System.Windows.Application
         _battleWindow.QuestionPaneWidthChanged += async width => await _mainViewModel.SetQuestionPaneWidthAsync(width);
         _battleWindow.ScreenshotQuestionRatioChanged += async ratio => await _mainViewModel.SetScreenshotQuestionRatioAsync(ratio);
         _battleWindow.Closing += (_, args) => { if (!_exiting) { args.Cancel = true; _battleWindow.Hide(); } };
+        _battleWindow.IsVisibleChanged += (_, _) =>
+        {
+            if (_battleWindow.IsVisible && _mainViewModel.GetConfigSnapshot().DualMachine.IsData) _battleWindow.Hide();
+        };
         _trayIcon = new TrayIconService(ShowWorkspace, OpenSettingsFromTray,
             () => WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough), async () => await ExitAppAsync());
         InitializeOpacityHotkeys();
@@ -253,8 +285,7 @@ public partial class App : System.Windows.Application
                 _battleWindow?.ScrollConversation(direction);
             }, () =>
             {
-                if (_battleViewModel?.ScreenshotCommand.CanExecute(null) == true)
-                    _battleViewModel.ScreenshotCommand.Execute(null);
+                _ = CaptureForCurrentModeAsync();
             }, direction => _battleViewModel?.SelectQuestion(direction));
         if (_interactionHotkeys.RegistrationErrors.Count > 0)
         {
@@ -359,6 +390,11 @@ public partial class App : System.Windows.Application
     private void ShowWorkspace()
     {
         if (!_authenticated || _battleWindow is null) return;
+        if (_mainViewModel?.GetConfigSnapshot().DualMachine.IsData == true)
+        {
+            OpenSettingsFromTray();
+            return;
+        }
         _battleWindow.WindowState = WindowState.Normal;
         _battleWindow.Show();
         if (!WindowInteraction.IsClickThrough) _battleWindow.Activate();
@@ -374,8 +410,13 @@ public partial class App : System.Windows.Application
     {
         if (_exiting) return;
         _exiting = true;
-        try { if (_battleViewModel is not null) await _battleViewModel.DisposeAsync(); }
+        try
+        {
+            if (_battleViewModel is not null) await _battleViewModel.DisposeAsync();
+        }
         catch (Exception ex) { _logger?.Error("Failed to stop battle mode during exit.", ex); }
+        try { if (_dualMachine is not null) await _dualMachine.DisposeAsync(); }
+        catch (Exception ex) { _logger?.Error("Failed to stop dual-machine mode during exit.", ex); }
         finally { Shutdown(); }
     }
 
@@ -417,7 +458,7 @@ public partial class App : System.Windows.Application
             return Task.FromResult<AppConfig?>(null);
         }
 
-        var dialog = new SettingsWindow(current, _configService.CreateDefault())
+        var dialog = new SettingsWindow(current, _configService.CreateDefault(), _dualMachine)
         {
             Owner = _battleWindow
         };
@@ -432,6 +473,55 @@ public partial class App : System.Windows.Application
         {
             _settingsWindow = null;
         }
+    }
+
+    private async Task CaptureForCurrentModeAsync()
+    {
+        if (_exiting || _mainViewModel is null || _battleViewModel is null) return;
+        try
+        {
+            if (_mainViewModel.GetConfigSnapshot().DualMachine.IsData)
+            {
+                await _dualMachine!.PushScreenshotAsync();
+                _trayIcon?.ShowNotice("截图已发送到显示端。");
+            }
+            else if (_battleViewModel.ScreenshotCommand.CanExecute(null)) await _battleViewModel.CaptureScreenshotAsync();
+        }
+        catch (Exception ex)
+        {
+            _battleViewModel.ReportStatus("截图失败：" + ex.Message);
+            _trayIcon?.ShowNotice("截图失败：" + ex.Message);
+        }
+    }
+
+    private async Task ForwardDataTextAsync(string text)
+    {
+        try { await _dualMachine!.PushTextAsync(text); }
+        catch (Exception ex) { _trayIcon?.ShowNotice("发送问题失败：" + ex.Message); }
+    }
+
+    private async Task ApplyDualMachineModeAsync(AppConfig config)
+    {
+        if (_dualMachine is null || _battleViewModel is null || _battleWindow is null) return;
+        await _modeChangeGate.WaitAsync();
+        try
+        {
+            if (_exiting) return;
+            var options = config.DualMachine;
+            var key = $"{options.Enabled}:{options.Role}:{options.Port}:{options.PeerOffer}";
+            if (key == _appliedDualMachineKey) return;
+            var initial = _appliedDualMachineKey.Length == 0;
+            _appliedDualMachineKey = key;
+            _battleViewModel.CancelRequests();
+            if (_battleViewModel.IsRecording || _battleViewModel.IsStarting) await _battleViewModel.StopCaptureAsync();
+            if (options.IsData) { _battleWindow.Hide(); _historyWindow?.Close(); }
+            try { await _dualMachine.ApplyAsync(options); }
+            catch (Exception ex) { _logger?.Error("Dual-machine setup failed.", ex); }
+            _battleViewModel.ReportStatus(_dualMachine.Status);
+            if (!initial && !options.IsData) ShowWorkspace();
+            else if (!initial) _trayIcon?.ShowNotice(_dualMachine.Status);
+        }
+        finally { _modeChangeGate.Release(); }
     }
 }
 

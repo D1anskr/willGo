@@ -129,7 +129,9 @@ $sedPath = Join-Path $stageRoot 'willGo-setup.sed'
 
 Write-Step 'Building fresh package payload'
 if (!$ReusePackage) {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $distributionScript -Runtime $Runtime -Configuration $Configuration -SevenZipPath $SevenZipPath -Zip
+    $distributionArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $distributionScript, '-Runtime', $Runtime, '-Configuration', $Configuration, '-Zip')
+    if ($SevenZipPath) { $distributionArgs += @('-SevenZipPath', $SevenZipPath) }
+    & powershell @distributionArgs
     if ((-not $?) -or $LASTEXITCODE -ne 0) { throw "Package build failed with exit code $LASTEXITCODE" }
 }
 elseif (!(Test-Path $packageZip) -or !(Test-Path (Join-Path $packageRoot 'package-info.json'))) {

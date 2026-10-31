@@ -56,6 +56,8 @@ public sealed class AppConfigService : IAppConfigService
             config.RememberUserId = persisted.RememberUserId;
             config.RememberedUserId = persisted.RememberUserId ? (persisted.RememberedUserId ?? "").Trim() : "";
             config.Battle = persisted.Battle?.Clone() ?? new BattleConfig();
+            config.DualMachine = persisted.DualMachine?.Clone() ?? new();
+            config.DualMachine.PeerOffer = _protector.Unprotect(persisted.DualMachinePeerOfferProtected);
             config.Battle.Speech.ApiKey = _protector.Unprotect(persisted.SpeechApiKeyProtected);
             config.Battle.Speech.AccessToken = _protector.Unprotect(persisted.SpeechAccessTokenProtected);
             var primary = persisted.Primary ?? new ModelEndpointConfig();
@@ -127,6 +129,8 @@ public sealed class AppConfigService : IAppConfigService
             RememberUserId = config.RememberUserId,
             RememberedUserId = config.RememberUserId ? config.RememberedUserId.Trim() : "",
             Battle = config.Battle.Clone(),
+            DualMachine = config.DualMachine.Clone(),
+            DualMachinePeerOfferProtected = _protector.Protect(config.DualMachine.PeerOffer),
             SpeechApiKeyProtected = _protector.Protect(config.Battle.Speech.ApiKey),
             SpeechAccessTokenProtected = _protector.Protect(config.Battle.Speech.AccessToken),
             ConversationModels = config.ConversationModels.Clone(),
@@ -152,6 +156,7 @@ public sealed class AppConfigService : IAppConfigService
         };
 
         persisted.ConversationModels.Primary.ApiKey = string.Empty;
+        persisted.DualMachine.PeerOffer = string.Empty;
         persisted.ConversationModels.Secondary.ApiKey = string.Empty;
         persisted.Battle.Speech.ApiKey = string.Empty;
         persisted.Battle.Speech.AccessToken = string.Empty;

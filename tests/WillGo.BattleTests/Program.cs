@@ -38,6 +38,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         if (args.Contains("--app-startup")) return TestFullAppStartup();
+        if (args.Contains("--data-startup")) return TestFullAppStartup(dataRole: true);
         if (args.Contains("--local-login-startup")) return TestFullAppStartup(localAccess: true);
         if (args.Contains("--login-preview")) return LoginPresentationTests.Run();
         if (args.Contains("--activate-existing")) return new FloatingDeskAssistant.App().Run();
@@ -49,12 +50,25 @@ internal static class Program
         {
             try
             {
+                if (args.Contains("--dual-machine-only"))
+                {
+                    await DualMachineTests.RunAsync(Check);
+                    Console.WriteLine($"PASS: {_checks} dual-machine checks");
+                    return;
+                }
+                if (args.Contains("--dual-machine-live"))
+                {
+                    await DualMachineTests.RunLiveAsync(Check);
+                    Console.WriteLine($"PASS: {_checks} live dual-machine checks");
+                    return;
+                }
                 if (!args.Contains("--speech-only") && !args.Contains("--integration-only"))
                 {
                     await TestCoreAsync();
                     await SpeechEchoTests.RunAsync(Check);
                     await TestContextAsync();
                     await DoubaoCloudTests.RunAsync(Check);
+                    await DualMachineTests.RunAsync(Check);
                     await SpeechArchiveTests.RunAsync(Check);
                     await BattleHistoryTests.RunAsync(Check);
                     await LoginTests.RunAsync(Check);
@@ -86,7 +100,7 @@ internal static class Program
         return exitCode;
     }
 
-    private static int TestFullAppStartup(bool localAccess = false)
+    private static int TestFullAppStartup(bool localAccess = false, bool dataRole = false)
     {
         var result = 0;
         var app = new FloatingDeskAssistant.App();
@@ -121,7 +135,10 @@ internal static class Program
                         Check(duplicate.ExitCode == 0 && app.Windows.OfType<LoginWindow>().Count() == 1,
                             "opening a second instance restores the existing login window without another login or an already-running dialog");
                     }
-                    typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.SetValue(app, new LoginTests.MemoryConfig());
+                    typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.SetValue(app, new LoginTests.MemoryConfig
+                    {
+                        BeforeSave = dataRole ? config => config.DualMachine = new() { Enabled = true, Role = DualMachineRole.Data, Port = 39657 } : null
+                    });
                     var loginVm = (LoginViewModel)login.DataContext;
                     var validator = new LoginTests.FakeValidation { Result = new() { StatusCode = "USER_DISABLED" } };
                     typeof(LoginViewModel).GetField("_validationService", flags)!.SetValue(loginVm, validator);
@@ -145,6 +162,35 @@ internal static class Program
                 return;
             }
             var battle = typeof(FloatingDeskAssistant.App).GetField("_battleWindow", flags)!.GetValue(app) as BattleWindow;
+            if (dataRole && battle is not null && typeof(FloatingDeskAssistant.App).GetField("_dualMachine", flags)!.GetValue(app) is DualMachineService { IsData: true, PairingOffers.Count: > 0 } dataPeer)
+            {
+                timer.Stop();
+                try
+                {
+                    Check(!battle.IsVisible && !app.Windows.OfType<SettingsWindow>().Any(), "data startup is quiet without a workspace or settings window");
+                    Check(!app.Windows.OfType<BallWindow>().Any() && !app.Windows.OfType<ChatWindow>().Any(), "data startup creates no legacy windows");
+                    Check(typeof(FloatingDeskAssistant.App).GetField("_trayIcon", flags)!.GetValue(app) is TrayIconService { Visible: true }, "data startup retains a registered tray icon");
+                    Check(!dataPeer.IsAudioStreaming && !((BattleViewModel)battle.DataContext).IsRecording, "data startup and listening do not activate microphones");
+                    var displayConfig = AppConfig.CreateDefault();
+                    displayConfig.DualMachine = new() { Enabled = true, Role = DualMachineRole.Display, PeerOffer = (DualMachineOffer.Parse(dataPeer.PairingOffers.First()) with { Host = "127.0.0.1" }).ToString() };
+                    await using var displayPeer = new DualMachineService(() => displayConfig, new FakeScreenshots());
+                    await displayPeer.ApplyAsync(displayConfig.DualMachine);
+                    Check(dataPeer.IsConnected && !battle.IsVisible, "production data service accepts a paired display while its window stays hidden");
+                    var main = (MainViewModel)typeof(FloatingDeskAssistant.App).GetField("_mainViewModel", flags)!.GetValue(app)!;
+                    var single = main.GetConfigSnapshot(); single.DualMachine.Enabled = false;
+                    typeof(MainViewModel).GetField("_config", flags)!.SetValue(main, single);
+                    await (Task)typeof(FloatingDeskAssistant.App).GetMethod("ApplyDualMachineModeAsync", flags)!.Invoke(app, new object[] { single })!;
+                    Check(battle.IsVisible && !dataPeer.IsConnected && !dataPeer.IsData, "leaving data role restores existing workspace without restarting app");
+                    single.DualMachine.Enabled = true;
+                    typeof(MainViewModel).GetField("_config", flags)!.SetValue(main, single);
+                    await (Task)typeof(FloatingDeskAssistant.App).GetMethod("ApplyDualMachineModeAsync", flags)!.Invoke(app, new object[] { single })!;
+                    Check(dataPeer.IsData && !battle.IsVisible && !app.Windows.OfType<SettingsWindow>().Any(), "switching into data role hides workspace and does not open another window");
+                    Console.WriteLine($"PASS: {_checks} data startup checks");
+                }
+                catch (Exception ex) { result = 1; Console.Error.WriteLine(ex); }
+                finally { await (Task)typeof(FloatingDeskAssistant.App).GetMethod("ExitAppAsync", flags)!.Invoke(app, null)!; }
+                return;
+            }
             if (battle?.IsVisible != true)
             {
                 if (DateTime.UtcNow < deadline) return;

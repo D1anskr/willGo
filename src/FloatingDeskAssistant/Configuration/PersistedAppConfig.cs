@@ -5,6 +5,8 @@ public sealed class PersistedAppConfig
     public bool RememberUserId { get; set; }
     public string RememberedUserId { get; set; } = "";
     public BattleConfig? Battle { get; set; }
+    public DualMachineConfig? DualMachine { get; set; }
+    public string DualMachinePeerOfferProtected { get; set; } = "";
     public string SpeechApiKeyProtected { get; set; } = string.Empty;
     public string SpeechAccessTokenProtected { get; set; } = string.Empty;
     public ModelRouteConfig? ConversationModels { get; set; }

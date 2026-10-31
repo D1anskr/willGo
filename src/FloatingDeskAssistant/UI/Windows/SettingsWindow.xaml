@@ -190,6 +190,11 @@
                                     <TextBlock Style="{StaticResource GuideText}"><Bold>答案字号：</Bold>14 至 28，建议先用 18 至 20，再按屏幕大小调整；答案区的字号按钮也可直接调整。</TextBlock>
                                 </StackPanel>
                             </GroupBox>
+                            <GroupBox Header="局域网双机模式"><StackPanel>
+                                <TextBlock Style="{StaticResource GuideText}" Text="在两台电脑的“双机模式”中开启功能：采集电脑选择数据端并保存，通过托盘设置复制配对信息；另一台选择显示端，粘贴完整配对信息并保存。首次连接需允许数据端的专用网络防火墙访问。" />
+                                <TextBlock Style="{StaticResource GuideText}" Text="数据端设置截图范围和音频设备，登录后后台运行；显示端配置语音和问答密钥、提示词、触发词及保存目录。显示端点击开始战斗才开始采集数据端音频。两端 Ctrl+Shift+S 都截取数据端画面，在显示端提取题目并回答。" />
+                                <TextBlock Style="{StaticResource GuideText}" Text="断线会停止采集，重新连接后需再次开始战斗；关闭双机模式恢复本机采集。配对信息包含连接凭据，请仅提供给要连接的电脑。" />
+                            </StackPanel></GroupBox>
                             <TextBlock x:Name="GuideSaveNote" Style="{StaticResource GuideText}" Foreground="#FF616B73" Margin="0,0,0,18"><Bold>保存与取消：</Bold>“保存设置”应用修改；“取消”或 Esc 放弃本次修改。“恢复默认”先重置当前编辑内容，保存后才生效，使用前留意密钥和自定义提示词。</TextBlock>
                         </StackPanel>
                     </ScrollViewer>
@@ -256,6 +261,42 @@
                             </StackPanel></Border>
                         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                     </StackPanel></ScrollViewer>
+                </TabItem>
+                <TabItem x:Name="DualMachineTab" Header="双机模式">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="0,0,12,20">
+                            <CheckBox x:Name="DualMachineEnabled" Content="开启局域网双机模式" Margin="0,0,0,18" IsChecked="{Binding DualMachineEnabled}" />
+                            <GroupBox Header="本机角色" IsEnabled="{Binding DualMachineEnabled}">
+                                <StackPanel>
+                                    <ComboBox x:Name="DualMachineRoleBox" ItemsSource="{Binding DualMachineRoles}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedDualMachineRole}" Margin="0,0,0,12" />
+                                    <TextBlock Text="数据端负责截图、麦克风和系统播放采集；显示端负责云端识别、模型回答与记录保存。关闭双机模式即恢复本机采集。" TextWrapping="Wrap" Foreground="#FF616B73" />
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="数据端配对" Visibility="{Binding IsDataRole, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel>
+                                    <TextBlock Text="监听端口" /><TextBox x:Name="DualMachinePortBox" Width="120" HorizontalAlignment="Left" Text="{Binding EditableConfig.DualMachine.Port, UpdateSourceTrigger=LostFocus, ValidatesOnExceptions=True}" Margin="0,5,0,12" />
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <ComboBox x:Name="PairingOffersBox" MinWidth="0" ToolTip="选择与显示端处于同一局域网的本机地址" />
+                                        <Button Grid.Column="1" Style="{StaticResource SettingsIconButton}" Content="&#xE8C8;" ToolTip="复制配对信息" Click="CopyPairingOffer_OnClick" Margin="8,0,0,0" />
+                                    </Grid>
+                                    <TextBlock Text="先保存为数据端，再复制配对信息到显示端。首次监听时允许 Windows 防火墙的专用网络访问。截图范围和音频设备使用数据端自己的设置。" TextWrapping="Wrap" Foreground="#FF616B73" Margin="0,0,0,12" />
+                                    <Button Content="重置配对信息" HorizontalAlignment="Left" Click="ResetPairing_OnClick" />
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="显示端连接" Visibility="{Binding IsDisplayRole, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel>
+                                    <TextBlock Text="数据端配对信息" />
+                                    <TextBox x:Name="PeerOfferBox" Text="{Binding EditableConfig.DualMachine.PeerOffer, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="False" MinHeight="68" Margin="0,5,0,12" />
+                                    <TextBlock Text="完整粘贴数据端的配对信息并保存。显示端配置豆包与问答模型密钥、触发词、提示词和保存目录；点击开始战斗后才采集数据端音频。" TextWrapping="Wrap" Foreground="#FF616B73" />
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="连接状态">
+                                <StackPanel><TextBlock x:Name="DualMachineStatusText" Text="单机模式" TextWrapping="Wrap" Foreground="#FF245A3D" Margin="0,0,0,12" />
+                                    <Button x:Name="ReconnectPeerButton" Content="重新连接" HorizontalAlignment="Left" Click="ReconnectPeer_OnClick" />
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
                 <TabItem x:Name="AppearanceTab" Header="界面设置">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">

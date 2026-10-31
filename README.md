@@ -5,6 +5,10 @@ It supports screenshot-based sending, local image attachment, configurable model
 
 ## Current Version Baseline
 
+The [2.0.0 LAN dual-machine guide](docs/release-2.0.0.md) describes pairing,
+the background data endpoint, display endpoint, audio and screenshot transport,
+and how to retain standalone operation.
+
 See the [Chinese feature baseline for 1.10.5](docs/current-version-1.10.5.md)
 for the current speech recognition, screenshot solving, model routing, recording,
 history, shortcuts and known limitations before the next major update.

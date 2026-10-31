@@ -29,6 +29,20 @@ public sealed class TrayIconService : IDisposable
 
     public void SetRecording(bool recording) => _icon.Text = recording ? "willGo - 正在采集麦克风与系统播放" : "willGo";
 
+    public void SetConnectionStatus(bool data, string status, bool streaming)
+    {
+        _menu.Items[0].Text = data ? "数据端连接与设置" : "显示 willGo";
+        var label = $"willGo · {status}";
+        _icon.Text = label.Length > 63 ? label[..63] : label;
+    }
+
+    public void ShowNotice(string text)
+    {
+        _icon.BalloonTipTitle = "willGo";
+        _icon.BalloonTipText = text;
+        _icon.ShowBalloonTip(3000);
+    }
+
     public void Dispose()
     {
         _icon.Visible = false;

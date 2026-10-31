@@ -22,8 +22,8 @@ internal static class SettingsOrganizationTests
         var vm = (SettingsViewModel)window.DataContext;
         var sections = (TabControl)window.FindName("SettingsTabs");
         var models = (TabControl)window.FindName("ModelTabs");
-        check(sections.Items.Cast<TabItem>().Select(t => t.Header.ToString()).SequenceEqual(new[] { "使用说明", "模型设置", "语音设置", "快捷提问", "界面设置" }),
-            "settings expose the guide first followed by four Chinese configuration sections");
+        check(sections.Items.Cast<TabItem>().Select(t => t.Header.ToString()).SequenceEqual(new[] { "使用说明", "模型设置", "语音设置", "快捷提问", "双机模式", "界面设置" }),
+            "settings expose the guide first followed by five Chinese configuration sections");
         sections.SelectedItem = window.FindName("UserGuideTab"); await Task.Delay(60);
         var shortcuts = (Grid)window.FindName("GuideShortcuts");
         check(new[] { "Ctrl + 1", "Ctrl + Shift + S", "Ctrl + Shift + 左 / 右", "Ctrl + Shift + 上 / 下", "Ctrl + 上 / 下", "Enter / Shift + Enter" }

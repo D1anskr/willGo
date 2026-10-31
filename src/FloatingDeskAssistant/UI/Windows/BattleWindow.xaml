@@ -62,6 +62,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="AppTitle" Text="willGo" FontSize="16" FontWeight="SemiBold" Foreground="#FF202428" />
+                    <TextBlock Text="{Binding ConnectionStatus}" Foreground="#FF616B73" FontSize="11" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding Status}" Foreground="#FF2E6E4F" FontSize="11" Margin="0,3,8,0" TextWrapping="Wrap" />
                 </StackPanel>
                 <WrapPanel Grid.Column="1" VerticalAlignment="Center">

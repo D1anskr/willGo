@@ -139,10 +139,11 @@ internal static class LoginTests
     }
     internal sealed class MemoryConfig : IAppConfigService
     {
+        public Action<AppConfig>? BeforeSave { get; set; }
         public AppConfig? Saved { get; private set; }
         public AppConfig CreateDefault() => AppConfig.CreateDefault();
         public Task<AppConfig> LoadAsync(CancellationToken cancellationToken = default) => Task.FromResult(CreateDefault());
-        public Task SaveAsync(AppConfig config, CancellationToken cancellationToken = default) { Saved = config.Clone(); return Task.CompletedTask; }
+        public Task SaveAsync(AppConfig config, CancellationToken cancellationToken = default) { BeforeSave?.Invoke(config); Saved = config.Clone(); return Task.CompletedTask; }
     }
 
     private sealed class QuietLogger : ILoggerService

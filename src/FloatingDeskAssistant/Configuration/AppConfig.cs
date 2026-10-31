@@ -5,6 +5,7 @@ public sealed class AppConfig
     public bool RememberUserId { get; set; }
     public string RememberedUserId { get; set; } = "";
     public BattleConfig Battle { get; set; } = new();
+    public DualMachineConfig DualMachine { get; set; } = new();
     public ModelRouteConfig ConversationModels { get; set; } = new();
     public ModelEndpointConfig Primary { get; set; } = new();
     public ModelEndpointConfig Secondary { get; set; } = new();
@@ -69,6 +70,7 @@ public sealed class AppConfig
             RememberedUserId = RememberedUserId,
             Primary = Primary.Clone(),
             Battle = Battle.Clone(),
+            DualMachine = DualMachine.Clone(),
             ConversationModels = ConversationModels.Clone(),
             Secondary = Secondary.Clone(),
             PromptPresets = PromptPresets.Select(preset => preset.Clone()).ToList(),

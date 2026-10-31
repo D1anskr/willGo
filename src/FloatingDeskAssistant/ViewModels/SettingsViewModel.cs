@@ -26,6 +26,25 @@ public sealed class SettingsViewModel : ObservableObject
     public AppConfig EditableConfig { get; private set; }
     public IReadOnlyList<AudioDeviceOption> Microphones { get; }
     public IReadOnlyList<AudioDeviceOption> Speakers { get; }
+    public IReadOnlyList<SettingsOption<DualMachineRole>> DualMachineRoles { get; } =
+        [new(DualMachineRole.Data, "数据端（采集这台电脑）"), new(DualMachineRole.Display, "显示端（接收并回答）")];
+    public bool DualMachineEnabled
+    {
+        get => EditableConfig.DualMachine.Enabled;
+        set { EditableConfig.DualMachine.Enabled = value; RaiseDualMachineChanged(); }
+    }
+    public DualMachineRole SelectedDualMachineRole
+    {
+        get => EditableConfig.DualMachine.Role;
+        set { EditableConfig.DualMachine.Role = value; RaiseDualMachineChanged(); }
+    }
+    public bool IsDataRole => EditableConfig.DualMachine.IsData;
+    public bool IsDisplayRole => EditableConfig.DualMachine.IsDisplay;
+    private void RaiseDualMachineChanged()
+    {
+        RaisePropertyChanged(nameof(DualMachineEnabled)); RaisePropertyChanged(nameof(SelectedDualMachineRole));
+        RaisePropertyChanged(nameof(IsDataRole)); RaisePropertyChanged(nameof(IsDisplayRole));
+    }
 
     private static IReadOnlyList<AudioDeviceOption> LoadDevices(DataFlow flow, string savedId)
     {
@@ -70,6 +89,7 @@ public sealed class SettingsViewModel : ObservableObject
     {
         EditableConfig = _defaultConfig.Clone();
         RaisePropertyChanged(nameof(EditableConfig));
+        RaiseDualMachineChanged();
         RaiseRemoteCaptureChanged();
         ReloadPromptPresets();
     }

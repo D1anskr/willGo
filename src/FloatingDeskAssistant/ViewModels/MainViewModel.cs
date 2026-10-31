@@ -435,12 +435,13 @@ public sealed class MainViewModel : ObservableObject
             return new RemoteCaptureTriggerResult(false, "willGo is busy with the previous request. Please retry in a moment.");
         }
 
-        if (_config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion && !HasRemoteCapturePresetRegion())
+        if (!_config.DualMachine.IsDisplay && _config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion && !HasRemoteCapturePresetRegion())
         {
             return new RemoteCaptureTriggerResult(false, "Remote capture mode is set to PresetRegion, but no region has been saved in Settings yet.");
         }
 
-        _ = CaptureRemoteConfiguredAsync();
+        if (CaptureScreenshotOverride is { } captureOverride) _ = captureOverride();
+        else _ = CaptureRemoteConfiguredAsync();
         return _config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion
             ? new RemoteCaptureTriggerResult(true, "Remote preset-region capture accepted. willGo is capturing the saved region now.")
             : new RemoteCaptureTriggerResult(true, "Remote full-desktop capture accepted. willGo is capturing the host desktop now.");

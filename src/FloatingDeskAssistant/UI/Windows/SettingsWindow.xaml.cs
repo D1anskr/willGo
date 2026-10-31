@@ -16,20 +16,30 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsViewModel _viewModel;
     private CancellationTokenSource? _speechTest;
+    private readonly DualMachineService? _dualMachine;
+    private bool _peerAction;
 
-    public SettingsWindow(AppConfig currentConfig, AppConfig defaultConfig)
+    public SettingsWindow(AppConfig currentConfig, AppConfig defaultConfig, DualMachineService? dualMachine = null)
     {
         InitializeComponent();
         FloatingDeskAssistant.Application.WindowCaptureProtection.Attach(this);
         _viewModel = new SettingsViewModel(currentConfig, defaultConfig);
+        _dualMachine = dualMachine;
         DataContext = _viewModel;
         RefreshSpeechCredentials();
+        RefreshDualMachineStatus();
+        if (currentConfig.DualMachine.IsData) SettingsTabs.SelectedItem = DualMachineTab;
+        if (_dualMachine is not null) _dualMachine.StateChanged += OnDualMachineStateChanged;
         Loaded += (_, _) =>
         {
             Width = Math.Min(Width, SystemParameters.WorkArea.Width - 24);
             Height = Math.Min(Height, SystemParameters.WorkArea.Height - 24);
         };
-        Closed += (_, _) => _speechTest?.Cancel();
+        Closed += (_, _) =>
+        {
+            _speechTest?.Cancel();
+            if (_dualMachine is not null) _dualMachine.StateChanged -= OnDualMachineStateChanged;
+        };
     }
 
     public AppConfig? UpdatedConfig { get; private set; }
@@ -42,6 +52,22 @@ public partial class SettingsWindow : Window
     private void SaveButton_OnClick(object sender, RoutedEventArgs e)
     {
         UpdatedConfig = _viewModel.BuildUpdatedConfig();
+        if (UpdatedConfig.DualMachine.Enabled)
+        {
+            try
+            {
+                if (!int.TryParse(DualMachinePortBox.Text, out var port) || port is < 1024 or > 65535)
+                    throw new ArgumentException("监听端口必须在 1024 到 65535 之间。");
+                UpdatedConfig.DualMachine.Port = port;
+                if (UpdatedConfig.DualMachine.IsDisplay) DualMachineOffer.Parse(UpdatedConfig.DualMachine.PeerOffer);
+            }
+            catch (Exception ex)
+            {
+                SettingsTabs.SelectedItem = DualMachineTab;
+                System.Windows.MessageBox.Show(this, ex.Message, "双机设置", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+        }
         if (string.IsNullOrWhiteSpace(UpdatedConfig.Battle.SpeechArchiveDirectory) ||
             !Path.IsPathFullyQualified(Environment.ExpandEnvironmentVariables(UpdatedConfig.Battle.SpeechArchiveDirectory.Trim())))
         {
@@ -83,6 +109,40 @@ public partial class SettingsWindow : Window
     {
         _viewModel.RestoreDefaults();
         RefreshSpeechCredentials();
+    }
+
+    private void OnDualMachineStateChanged() => Dispatcher.BeginInvoke(RefreshDualMachineStatus);
+
+    private void RefreshDualMachineStatus()
+    {
+        if (_dualMachine is null) return;
+        DualMachineStatusText.Text = _dualMachine.Status;
+        var selected = PairingOffersBox.SelectedItem as string;
+        PairingOffersBox.ItemsSource = _dualMachine.PairingOffers;
+        PairingOffersBox.SelectedItem = _dualMachine.PairingOffers.Contains(selected) ? selected : _dualMachine.PairingOffers.FirstOrDefault();
+    }
+
+    private void CopyPairingOffer_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (PairingOffersBox.SelectedItem is string offer) System.Windows.Clipboard.SetText(offer);
+        else DualMachineStatusText.Text = "请先开启双机模式，选择数据端并保存。";
+    }
+
+    private async void ReconnectPeer_OnClick(object sender, RoutedEventArgs e) => await RunPeerActionAsync(false);
+    private async void ResetPairing_OnClick(object sender, RoutedEventArgs e) => await RunPeerActionAsync(true);
+    private async Task RunPeerActionAsync(bool reset)
+    {
+        if (_peerAction || _dualMachine is null) return;
+        _peerAction = true;
+        ReconnectPeerButton.IsEnabled = false;
+        try
+        {
+            if (reset) await _dualMachine.ResetPairingAsync();
+            else await _dualMachine.ReconnectAsync();
+            RefreshDualMachineStatus();
+        }
+        catch (Exception ex) { DualMachineStatusText.Text = "连接失败：" + ex.Message; }
+        finally { _peerAction = false; ReconnectPeerButton.IsEnabled = true; }
     }
 
     private void RefreshSpeechCredentials()

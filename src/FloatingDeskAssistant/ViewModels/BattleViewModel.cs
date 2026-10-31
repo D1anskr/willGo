@@ -105,6 +105,7 @@ public sealed class BattleViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<Task> _pending = [];
     private BattleEntry? _selected;
     private string _status = "待机";
+    private string _connectionStatus = "";
     private string _microphonePartial = "";
     private string _speakerPartial = "";
     private long _microphoneSequence;
@@ -152,6 +153,7 @@ public sealed class BattleViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<BattleEntry> Entries { get; } = [];
     public BattleEntry? Selected { get => _selected; set => SetProperty(ref _selected, value); }
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
+    public string ConnectionStatus { get => _connectionStatus; set => SetProperty(ref _connectionStatus, value); }
     public string MicrophonePartial { get => _microphonePartial; private set => SetProperty(ref _microphonePartial, value); }
     public string SpeakerPartial { get => _speakerPartial; private set => SetProperty(ref _speakerPartial, value); }
     public string Transcript { get => _transcript; private set => SetProperty(ref _transcript, value); }
@@ -186,7 +188,7 @@ public sealed class BattleViewModel : ObservableObject, IAsyncDisposable
         if (_disposed || _screenshots is null) return new(false, "战斗模式截图不可用。");
         if (IsScreenshotBusy) return new(false, "正在截图，请稍后再试。");
         var config = _getConfig();
-        if (config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion && (config.RemoteCaptureRegionWidth < 6 || config.RemoteCaptureRegionHeight < 6))
+        if (!config.DualMachine.IsDisplay && config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion && (config.RemoteCaptureRegionWidth < 6 || config.RemoteCaptureRegionHeight < 6))
             return new(false, "请先在设置 → 模型设置 → 截图模型中选择并保存截图区域。");
         _ = CaptureScreenshotAsync();
         return new(true, "截图已受理，结果将出现在战斗模式的问题记录中。");
@@ -207,7 +209,7 @@ public sealed class BattleViewModel : ObservableObject, IAsyncDisposable
             Status = "正在截图…";
             var config = _getConfig();
             ScreenshotCaptureResult? image;
-            if (config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion)
+            if (!config.DualMachine.IsDisplay && config.RemoteCaptureMode == RemoteCaptureMode.PresetRegion)
             {
                 if (config.RemoteCaptureRegionWidth < 6 || config.RemoteCaptureRegionHeight < 6)
                     throw new InvalidOperationException("请先在设置 → 模型设置 → 截图模型中选择并保存截图区域。");
@@ -260,7 +262,7 @@ public sealed class BattleViewModel : ObservableObject, IAsyncDisposable
                 if (recordAudio is null) { Status = "已取消开启语音识别"; return; }
             }
             _starting.Token.ThrowIfCancellationRequested();
-            Status = "正在连接豆包云端语音识别…";
+            Status = _getConfig().DualMachine.IsDisplay ? "正在连接数据端音频与豆包云端语音识别…" : "正在连接豆包云端语音识别…";
             var config = _getConfig().Battle;
             _captureGeneration++;
             _microphoneSequence = _speakerSequence = 0;
@@ -270,6 +272,7 @@ public sealed class BattleViewModel : ObservableObject, IAsyncDisposable
             IsRecording = true;
             Status = recordAudio == false ? "采集中 · 麦克风 / 系统播放 · 仅保存文字" :
                 recordAudio == true || config.SaveSpeechSessions ? "采集中 · 麦克风 / 系统播放 · 录音保存中" : "采集中 · 麦克风 / 系统播放";
+            if (_getConfig().DualMachine.IsDisplay) Status = "双机 · 数据端" + Status;
         }
         catch (OperationCanceledException) { _accepting = false; await _speech.StopAsync(); Status = "已暂停"; }
         catch (Exception ex) { _accepting = false; await _speech.StopAsync(); Status = "无法开始采集：" + ex.Message; }
