@@ -5,6 +5,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
+using FloatingDeskAssistant.Configuration;
+using FloatingDeskAssistant.UI.Themes;
 using Button = System.Windows.Controls.Button;
 using Clipboard = System.Windows.Clipboard;
 using FontFamily = System.Windows.Media.FontFamily;
@@ -18,11 +20,12 @@ public sealed class CodeBlockView : Border
     public Button CopyButton { get; }
     public string Code { get; }
 
-    public CodeBlockView(string code, string language, double fontSize)
+    public CodeBlockView(string code, string language, double fontSize, FusionStyle? fusionStyle = null)
     {
         Code = code;
-        var surface = new SolidColorBrush(Color.FromRgb(246, 248, 250));
-        var border = new SolidColorBrush(Color.FromRgb(216, 223, 227));
+        var colors = fusionStyle is { } style ? FusionColors.For(style) : null;
+        var surface = colors?.Panel ?? new SolidColorBrush(Color.FromRgb(246, 248, 250));
+        var border = colors?.Border ?? new SolidColorBrush(Color.FromRgb(216, 223, 227));
         Background = surface; BorderBrush = border; BorderThickness = new Thickness(1);
         CornerRadius = new CornerRadius(6); ClipToBounds = true;
         var grid = new Grid();
@@ -34,7 +37,7 @@ public sealed class CodeBlockView : Border
         var label = new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(language) ? "代码" : language, FontSize = 12,
-            Foreground = new SolidColorBrush(Color.FromRgb(98, 109, 118)), VerticalAlignment = VerticalAlignment.Center,
+            Foreground = colors?.Secondary ?? new SolidColorBrush(Color.FromRgb(98, 109, 118)), VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 8, 0)
         };
         toolbar.Children.Add(label);
@@ -62,12 +65,13 @@ public sealed class CodeBlockView : Border
         {
             Text = code, IsReadOnly = true, ShowLineNumbers = true,
             FontFamily = new FontFamily("Cascadia Mono,Consolas,Microsoft YaHei UI"), FontSize = fontSize,
-            Background = surface, Foreground = new SolidColorBrush(Color.FromRgb(36, 41, 46)),
-            LineNumbersForeground = new SolidColorBrush(Color.FromRgb(112, 122, 130)),
+            Background = surface, Foreground = colors?.Text ?? new SolidColorBrush(Color.FromRgb(36, 41, 46)),
+            FontWeight = colors is null ? FontWeights.Normal : FontWeights.Medium,
+            LineNumbersForeground = colors?.Secondary ?? new SolidColorBrush(Color.FromRgb(112, 122, 130)),
             WordWrap = true, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
             Padding = new Thickness(10, 10, 12, 12), BorderThickness = new Thickness(0),
-            SyntaxHighlighting = definition.Length > 0 ? HighlightingManager.Instance.GetDefinition(definition) : null
+            SyntaxHighlighting = colors is null && definition.Length > 0 ? HighlightingManager.Instance.GetDefinition(definition) : null
         };
         Editor.Options.AllowScrollBelowDocument = false;
         // Let the enclosing answer pane scroll even when the pointer is over code.

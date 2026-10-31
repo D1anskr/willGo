@@ -28,6 +28,10 @@ public sealed class SettingsViewModel : ObservableObject
     public IReadOnlyList<AudioDeviceOption> Speakers { get; }
     public IReadOnlyList<SettingsOption<DualMachineRole>> DualMachineRoles { get; } =
         [new(DualMachineRole.Data, "数据端（采集这台电脑）"), new(DualMachineRole.Display, "显示端（接收并回答）")];
+    public IReadOnlyList<SettingsOption<FusionStyle>> FusionStyles { get; } =
+        [new(FusionStyle.Dark, "深底亮字"), new(FusionStyle.Light, "浅底深字"), new(FusionStyle.Amber, "深底黄字")];
+    public IReadOnlyList<SettingsOption<FusionBackdrop>> FusionBackdrops { get; } =
+        [new(FusionBackdrop.Black, "纯黑"), new(FusionBackdrop.White, "纯白")];
     public bool DualMachineEnabled
     {
         get => EditableConfig.DualMachine.Enabled;
@@ -94,10 +98,11 @@ public sealed class SettingsViewModel : ObservableObject
         ReloadPromptPresets();
     }
 
-    public void UpdateOpacity(double ballOpacity, double windowOpacity)
+    public void UpdateOpacity(double ballOpacity, double windowOpacity, double? fusionOpacity = null)
     {
         EditableConfig.BallOpacity = ballOpacity;
         EditableConfig.WindowOpacity = windowOpacity;
+        if (fusionOpacity.HasValue) EditableConfig.DualMachine.FusionOpacity = fusionOpacity.Value;
         RaisePropertyChanged(nameof(EditableConfig));
     }
 

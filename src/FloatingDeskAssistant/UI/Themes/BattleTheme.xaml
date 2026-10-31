@@ -1,0 +1,15 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="BattleSurface" Color="White" />
+    <SolidColorBrush x:Key="BattlePanel" Color="#FFF7F8F9" />
+    <SolidColorBrush x:Key="BattleText" Color="#FF202428" />
+    <SolidColorBrush x:Key="BattleSecondary" Color="#FF616B73" />
+    <SolidColorBrush x:Key="BattleAccent" Color="#FF2E6E4F" />
+    <SolidColorBrush x:Key="BattleBorder" Color="#FFD4DDD7" />
+    <SolidColorBrush x:Key="BattleHover" Color="#FFEDF1F3" />
+    <SolidColorBrush x:Key="BattleSelected" Color="#FFE6F0E9" />
+    <SolidColorBrush x:Key="BattleGrip" Color="#FF9EB5A6" />
+    <SolidColorBrush x:Key="BattleComposer" Color="#FFFAFBFA" />
+    <SolidColorBrush x:Key="BattleSend" Color="#FFE2EEE7" />
+    <SolidColorBrush x:Key="BattleSendText" Color="#FF245A3D" />
+</ResourceDictionary>

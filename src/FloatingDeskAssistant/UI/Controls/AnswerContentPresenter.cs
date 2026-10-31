@@ -7,6 +7,8 @@ using Markdig;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+using FloatingDeskAssistant.Configuration;
+using FloatingDeskAssistant.UI.Themes;
 using Block = Markdig.Syntax.Block;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
@@ -24,12 +26,19 @@ public sealed class AnswerContentPresenter : System.Windows.Controls.UserControl
         .UsePipeTables().UseEmphasisExtras().Build();
     private static readonly FontFamily BodyFont = new("Microsoft YaHei UI,Microsoft YaHei,Segoe UI");
     private static readonly FontFamily MonoFont = new("Cascadia Mono,Consolas,Microsoft YaHei UI");
-    private static readonly Brush BodyBrush = FrozenBrush("#24292E");
-    private static readonly Brush StrongBrush = FrozenBrush("#111418");
-    private static readonly Brush MutedBrush = FrozenBrush("#626D76");
-    private static readonly Brush CodeBrush = FrozenBrush("#245540");
-    private static readonly Brush CodeBackground = FrozenBrush("#F4F6F7");
-    private static readonly Brush RuleBrush = FrozenBrush("#D8DFE3");
+    private static readonly Brush DefaultBodyBrush = FrozenBrush("#24292E");
+    private static readonly Brush DefaultStrongBrush = FrozenBrush("#111418");
+    private static readonly Brush DefaultMutedBrush = FrozenBrush("#626D76");
+    private static readonly Brush DefaultCodeBrush = FrozenBrush("#245540");
+    private static readonly Brush DefaultCodeBackground = FrozenBrush("#F4F6F7");
+    private static readonly Brush DefaultRuleBrush = FrozenBrush("#D8DFE3");
+    private FusionColors? _colors;
+    private Brush BodyBrush => _colors?.Text ?? DefaultBodyBrush;
+    private Brush StrongBrush => _colors?.Text ?? DefaultStrongBrush;
+    private Brush MutedBrush => _colors?.Secondary ?? DefaultMutedBrush;
+    private Brush CodeBrush => _colors?.Text ?? DefaultCodeBrush;
+    private Brush CodeBackground => _colors?.Panel ?? DefaultCodeBackground;
+    private Brush RuleBrush => _colors?.Border ?? DefaultRuleBrush;
     private readonly StackPanel _host = new();
     private MarkdownDocument? _document;
     private string? _parsedText;
@@ -38,9 +47,12 @@ public sealed class AnswerContentPresenter : System.Windows.Controls.UserControl
         nameof(Text), typeof(string), typeof(AnswerContentPresenter), new PropertyMetadata("", OnContentChanged));
     public static readonly DependencyProperty ContentFontSizeProperty = DependencyProperty.Register(
         nameof(ContentFontSize), typeof(double), typeof(AnswerContentPresenter), new PropertyMetadata(18d, OnContentChanged));
+    public static readonly DependencyProperty PaletteProperty = DependencyProperty.Register(
+        nameof(Palette), typeof(FusionStyle?), typeof(AnswerContentPresenter), new PropertyMetadata(null, OnContentChanged));
 
     public string Text { get => (string)GetValue(TextProperty); set => SetValue(TextProperty, value); }
     public double ContentFontSize { get => (double)GetValue(ContentFontSizeProperty); set => SetValue(ContentFontSizeProperty, value); }
+    public FusionStyle? Palette { get => (FusionStyle?)GetValue(PaletteProperty); set => SetValue(PaletteProperty, value); }
 
     public AnswerContentPresenter()
     {
@@ -57,6 +69,7 @@ public sealed class AnswerContentPresenter : System.Windows.Controls.UserControl
 
     private void Render()
     {
+        _colors = Palette is { } style ? FusionColors.For(style) : null;
         var text = Text ?? "";
         if (_document is null || _parsedText != text)
         {
@@ -91,7 +104,7 @@ public sealed class AnswerContentPresenter : System.Windows.Controls.UserControl
                 return body;
             case CodeBlock code:
                 return new CodeBlockView(code.Lines.ToString().TrimEnd('\r', '\n'),
-                    code is FencedCodeBlock fence ? fence.Info ?? "" : "", Math.Max(14, BodySize - 2))
+                    code is FencedCodeBlock fence ? fence.Info ?? "" : "", Math.Max(14, BodySize - 2), Palette)
                 { Margin = new Thickness(0, 2, 0, gap) };
             case ListBlock list:
                 var rows = new StackPanel { Margin = new Thickness(0, 0, 0, compact ? 4 : 12) };
@@ -175,6 +188,7 @@ public sealed class AnswerContentPresenter : System.Windows.Controls.UserControl
     private TextBlock NewText(double size) => new()
     {
         FontFamily = BodyFont, FontSize = size, Foreground = BodyBrush,
+        FontWeight = _colors is null ? FontWeights.Normal : FontWeights.Medium,
         TextWrapping = TextWrapping.Wrap, LineHeight = size * 1.75,
         LineStackingStrategy = LineStackingStrategy.BlockLineHeight
     };

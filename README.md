@@ -5,6 +5,9 @@ It supports screenshot-based sending, local image attachment, configurable model
 
 ## Current Version Baseline
 
+The [2.0.2 hardware fusion display guide](docs/release-2.0.2.md) describes the
+display-only solid backdrop, high-contrast palettes and independent reading settings.
+
 The [2.0.1 remote shortcut guide](docs/release-2.0.1.md) describes forwarding
 data-computer shortcuts to the paired display computer, alongside audio and screenshots.
 

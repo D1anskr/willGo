@@ -3,10 +3,17 @@
     <SolidColorBrush x:Key="LightText" Color="#FF202428" />
     <SolidColorBrush x:Key="LightSecondaryText" Color="#FF616B73" />
     <SolidColorBrush x:Key="LightBorder" Color="#FFD8DEE2" />
+    <SolidColorBrush x:Key="LightSurface" Color="White" />
+    <SolidColorBrush x:Key="LightHover" Color="#FFF0F4F2" />
+    <SolidColorBrush x:Key="LightPressed" Color="#FFE1EAE5" />
+    <SolidColorBrush x:Key="LightFocus" Color="#FF38785B" />
+    <SolidColorBrush x:Key="LightDisabledText" Color="#FF929A9F" />
+    <SolidColorBrush x:Key="LightDisabledSurface" Color="#FFF5F6F7" />
+    <SolidColorBrush x:Key="LightSelection" Color="#FFB8D6C6" />
     <Style x:Key="LightButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{StaticResource LightText}" />
-        <Setter Property="Background" Value="White" />
-        <Setter Property="BorderBrush" Value="{StaticResource LightBorder}" />
+        <Setter Property="Foreground" Value="{DynamicResource LightText}" />
+        <Setter Property="Background" Value="{DynamicResource LightSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LightBorder}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,6" />
         <Setter Property="MinHeight" Value="30" />
@@ -19,12 +26,12 @@
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#FFF0F4F2" /></Trigger>
-                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#FFE1EAE5" /></Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FF38785B" /></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource LightHover}" /></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource LightPressed}" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource LightFocus}" /></Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="#FF929A9F" />
-                            <Setter TargetName="ButtonBorder" Property="Background" Value="#FFF5F6F7" />
+                            <Setter Property="Foreground" Value="{DynamicResource LightDisabledText}" />
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource LightDisabledSurface}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -33,11 +40,11 @@
     </Style>
     <Style TargetType="Button" BasedOn="{StaticResource LightButton}" />
     <Style x:Key="LightTextBox" TargetType="TextBox">
-        <Setter Property="Foreground" Value="{StaticResource LightText}" />
-        <Setter Property="Background" Value="White" />
-        <Setter Property="CaretBrush" Value="{StaticResource LightText}" />
-        <Setter Property="BorderBrush" Value="{StaticResource LightBorder}" />
-        <Setter Property="SelectionBrush" Value="#FFB8D6C6" />
+        <Setter Property="Foreground" Value="{DynamicResource LightText}" />
+        <Setter Property="Background" Value="{DynamicResource LightSurface}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource LightText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LightBorder}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource LightSelection}" />
         <Setter Property="Padding" Value="8,6" />
         <Setter Property="Template">
             <Setter.Value>
@@ -47,8 +54,8 @@
                         <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="FieldBorder" Property="BorderBrush" Value="#FF6E9B82" /></Trigger>
-                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#FF929A9F" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="FieldBorder" Property="BorderBrush" Value="{DynamicResource LightFocus}" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource LightDisabledText}" /></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

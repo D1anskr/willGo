@@ -259,6 +259,11 @@ public partial class App : System.Windows.Application
         };
         MainWindow = _battleWindow;
         _battleWindow.SettingsRequested += OpenSettingsFromTray;
+        _battleWindow.FusionExitRequested += async () =>
+        {
+            try { await _mainViewModel.DisableFusionDisplayAsync(); }
+            catch (Exception ex) { _logger?.Error("Failed to save fusion display preference.", ex); }
+        };
         _battleWindow.PhoneRequested += () => _mainViewModel.ShowRemoteCaptureInfoCommand.Execute(null);
         _battleWindow.HistoryRequested += ShowBattleHistory;
         _battleWindow.AnswerFontSizeChanged += async size => await _mainViewModel.SetAnswerFontSizeAsync(size);
@@ -314,7 +319,8 @@ public partial class App : System.Windows.Application
             {
                 await _configService.SaveAsync(snapshot);
                 _opacityDirty = _mainViewModel.BallOpacity != snapshot.BallOpacity
-                    || _mainViewModel.WindowOpacity != snapshot.WindowOpacity;
+                    || _mainViewModel.WindowOpacity != snapshot.WindowOpacity
+                    || _mainViewModel.GetConfigSnapshot().DualMachine.FusionOpacity != snapshot.DualMachine.FusionOpacity;
             }
             catch (Exception ex)
             {
@@ -367,7 +373,7 @@ public partial class App : System.Windows.Application
     {
         if (_mainViewModel is null || _opacitySaveTimer is null) return;
         _mainViewModel.AdjustOpacity(delta);
-        _settingsWindow?.UpdateOpacity(_mainViewModel.BallOpacity, _mainViewModel.WindowOpacity);
+        _settingsWindow?.UpdateOpacity(_mainViewModel.BallOpacity, _mainViewModel.WindowOpacity, _mainViewModel.GetConfigSnapshot().DualMachine.FusionOpacity);
         _opacityDirty = true;
         _opacitySaveTimer.Stop();
         _opacitySaveTimer.Start();

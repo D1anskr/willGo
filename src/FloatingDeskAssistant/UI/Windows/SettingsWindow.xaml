@@ -195,6 +195,7 @@
                                 <TextBlock Style="{StaticResource GuideText}" Text="数据端设置截图范围和音频设备，登录后后台运行；显示端配置语音和问答密钥、提示词、触发词及保存目录。显示端点击开始战斗才开始采集数据端音频。两端 Ctrl+Shift+S 都截取数据端画面，在显示端提取题目并回答。" />
                                 <TextBlock Style="{StaticResource GuideText}" Text="两端均安装 2.0.1 或更新版本后，数据端的 Ctrl+1、Ctrl+Shift+上/下、Ctrl+Shift+左/右和 Ctrl+上/下，会实时控制显示端的鼠标穿透、问题切换、透明度和答案滚动；无需开启语音。显示端自己的快捷键仍可正常使用。断线期间按键不生效，重连后不会补发。" />
                                 <TextBlock Style="{StaticResource GuideText}" Text="断线会停止采集，重新连接后需再次开始战斗；关闭双机模式恢复本机采集。配对信息包含连接凭据，请仅提供给要连接的电脑。" />
+                                <TextBlock Style="{StaticResource GuideText}"><Bold>融合器显示：</Bold>在显示端的双机设置中开启“遮住桌面，仅保留 willGo”，选择与融合器匹配的纯黑或纯白底色。深底亮字适合先测试，深底黄字可作为亮色备选；如果文字被融合器滤掉，可切换配色或调整硬件的色键阈值。融合器模式有独立的不透明度和字号，默认 100% 和 22；快捷键仍可调整。收起 willGo、关闭该选项或退出程序会撤下幕布并恢复桌面，顶部“退出融合器显示”按钮可直接退出。桌面文件不会被删除，也不会修改壁纸或系统桌面设置。</TextBlock>
                             </StackPanel></GroupBox>
                             <TextBlock x:Name="GuideSaveNote" Style="{StaticResource GuideText}" Foreground="#FF616B73" Margin="0,0,0,18"><Bold>保存与取消：</Bold>“保存设置”应用修改；“取消”或 Esc 放弃本次修改。“恢复默认”先重置当前编辑内容，保存后才生效，使用前留意密钥和自定义提示词。</TextBlock>
                         </StackPanel>
@@ -295,6 +296,24 @@
                             <GroupBox Header="连接状态">
                                 <StackPanel><TextBlock x:Name="DualMachineStatusText" Text="单机模式" TextWrapping="Wrap" Foreground="#FF245A3D" Margin="0,0,0,12" />
                                     <Button x:Name="ReconnectPeerButton" Content="重新连接" HorizontalAlignment="Left" Click="ReconnectPeer_OnClick" />
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Header="融合器显示" Visibility="{Binding IsDisplayRole, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel>
+                                    <CheckBox x:Name="FusionDisplayEnabledBox" Content="遮住桌面，仅保留 willGo" IsChecked="{Binding EditableConfig.DualMachine.FusionDisplayEnabled}" Margin="0,0,0,14" />
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="幕布底色" VerticalAlignment="Center" /><ComboBox x:Name="FusionBackdropBox" Grid.Column="1" ItemsSource="{Binding FusionBackdrops}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding EditableConfig.DualMachine.FusionBackdrop}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="高对比配色" VerticalAlignment="Center" /><ComboBox x:Name="FusionStyleBox" Grid.Column="1" ItemsSource="{Binding FusionStyles}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding EditableConfig.DualMachine.FusionStyle}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="融合不透明度" VerticalAlignment="Center" /><Slider x:Name="FusionOpacitySlider" Grid.Column="1" Minimum="0.3" Maximum="1" Value="{Binding EditableConfig.DualMachine.FusionOpacity}" Margin="0,0,16,0" /><TextBlock Grid.Column="2" Text="{Binding EditableConfig.DualMachine.FusionOpacity, StringFormat={}{0:P0}}" TextAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /><ColumnDefinition Width="60" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="融合答案字号" VerticalAlignment="Center" /><Slider Grid.Column="1" Minimum="14" Maximum="28" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EditableConfig.DualMachine.FusionAnswerFontSize}" Margin="0,0,16,0" /><TextBlock Grid.Column="2" Text="{Binding EditableConfig.DualMachine.FusionAnswerFontSize, StringFormat=F0}" TextAlignment="Right" />
+                                    </Grid>
+                                    <TextBlock Text="先试纯黑幕布、深底亮字、100% 不透明度。幕布覆盖显示端所有屏幕的桌面、图标和任务栏；收起窗口或退出融合器显示后恢复。" TextWrapping="Wrap" Foreground="#FF616B73" />
                                 </StackPanel>
                             </GroupBox>
                         </StackPanel>

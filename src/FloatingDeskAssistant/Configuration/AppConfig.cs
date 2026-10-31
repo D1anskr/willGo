@@ -16,6 +16,7 @@ public sealed class AppConfig
     public double MessageFontSize { get; set; } = 14.0;
     public double BallOpacity { get; set; } = 0.28;
     public double WindowOpacity { get; set; } = 0.82;
+    public double EffectiveWindowOpacity => DualMachine.IsFusionDisplay ? DualMachine.Clone().FusionOpacity : WindowOpacity;
     public bool HideFromScreenCapture { get; set; } = true;
     public RemoteCaptureMode RemoteCaptureMode { get; set; } = RemoteCaptureMode.FullDesktop;
     public int RemoteCaptureRegionX { get; set; }

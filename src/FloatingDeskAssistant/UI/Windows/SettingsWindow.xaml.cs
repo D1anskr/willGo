@@ -44,9 +44,9 @@ public partial class SettingsWindow : Window
 
     public AppConfig? UpdatedConfig { get; private set; }
 
-    public void UpdateOpacity(double ballOpacity, double windowOpacity)
+    public void UpdateOpacity(double ballOpacity, double windowOpacity, double? fusionOpacity = null)
     {
-        _viewModel.UpdateOpacity(ballOpacity, windowOpacity);
+        _viewModel.UpdateOpacity(ballOpacity, windowOpacity, fusionOpacity);
     }
 
     private void SaveButton_OnClick(object sender, RoutedEventArgs e)

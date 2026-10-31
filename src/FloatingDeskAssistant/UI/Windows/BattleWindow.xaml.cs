@@ -6,6 +6,7 @@ using System.Windows.Media;
 using FloatingDeskAssistant.Application;
 using FloatingDeskAssistant.Configuration;
 using FloatingDeskAssistant.ViewModels;
+using FloatingDeskAssistant.UI.Themes;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -17,12 +18,16 @@ namespace FloatingDeskAssistant.UI.Windows;
 public partial class BattleWindow : Window
 {
     private readonly BattleViewModel _viewModel;
+    private readonly FusionDisplayController _fusionDisplay;
+    private FusionStyle? _fusionStyle;
+    private bool _standardTranscriptExpanded = true;
     private double _preferredQuestionPaneWidth = 210;
     private bool _splitterDragging;
     private bool _isComposing;
     private double _screenshotQuestionRatio = .38;
     private bool _screenshotSplitterDragging;
     public event Action? SettingsRequested;
+    public event Action? FusionExitRequested;
     public event Action? PhoneRequested;
     public event Action? HistoryRequested;
     public event Action<double>? AnswerFontSizeChanged;
@@ -34,6 +39,7 @@ public partial class BattleWindow : Window
         InitializeComponent();
         WindowCaptureProtection.Attach(this);
         _viewModel = viewModel;
+        _fusionDisplay = new FusionDisplayController(this);
         DataContext = viewModel;
         UpdateConfig(config);
         _viewModel.PropertyChanged += OnViewModelChanged;
@@ -60,6 +66,7 @@ public partial class BattleWindow : Window
         };
         Closed += (_, _) =>
         {
+            _fusionDisplay.Dispose();
             _viewModel.PropertyChanged -= OnViewModelChanged;
             WindowInteraction.Changed -= OnInteractionChanged;
         };
@@ -68,15 +75,35 @@ public partial class BattleWindow : Window
     public void UpdateConfig(AppConfig config)
     {
         var battle = config.Battle.Clone();
-        SetAnswerFontSize(battle.AnswerFontSize);
+        var dual = config.DualMachine.Clone();
+        var style = dual.IsFusionDisplay ? dual.FusionStyle : (FusionStyle?)null;
+        if (_fusionStyle != style)
+        {
+            if (_fusionStyle is null && style is not null)
+            {
+                _standardTranscriptExpanded = TranscriptExpander.IsExpanded;
+                TranscriptExpander.IsExpanded = false;
+            }
+            else if (style is null) TranscriptExpander.IsExpanded = _standardTranscriptExpanded;
+            _fusionStyle = style;
+            if (style is { } palette) FusionColors.For(palette).Apply(this);
+            else FusionColors.Clear(this);
+            AnswerContent.Palette = ScreenshotQuestionContent.Palette = style;
+        }
+        FusionExitButton.Visibility = dual.IsFusionDisplay ? Visibility.Visible : Visibility.Collapsed;
+        QuestionList.FontSize = dual.IsFusionDisplay ? 15 : 13;
+        SetAnswerFontSize(dual.IsFusionDisplay ? dual.FusionAnswerFontSize : battle.AnswerFontSize);
         if (!_splitterDragging)
         {
             _preferredQuestionPaneWidth = battle.QuestionPaneWidth;
             ApplyQuestionPaneWidth();
         }
         if (!_screenshotSplitterDragging) { _screenshotQuestionRatio = battle.ScreenshotQuestionRatio; ApplyScreenshotLayout(); }
-        WindowCaptureProtection.SetOpacity(this, config.WindowOpacity);
+        WindowCaptureProtection.SetOpacity(this, config.EffectiveWindowOpacity);
+        _fusionDisplay.Update(dual);
     }
+
+    private void FusionExit_OnClick(object sender, RoutedEventArgs e) => FusionExitRequested?.Invoke();
 
     private void ApplyQuestionPaneWidth()
     {

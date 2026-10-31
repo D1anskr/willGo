@@ -171,7 +171,10 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task SetAnswerFontSizeAsync(double size)
     {
-        _config.Battle.AnswerFontSize = double.IsFinite(size) ? Math.Clamp(size, 14, 28) : 18;
+        if (_config.DualMachine.IsFusionDisplay)
+            _config.DualMachine.FusionAnswerFontSize = double.IsFinite(size) ? Math.Clamp(size, 14, 28) : 22;
+        else
+            _config.Battle.AnswerFontSize = double.IsFinite(size) ? Math.Clamp(size, 14, 28) : 18;
         ConfigChanged?.Invoke(_config.Clone());
         try { await _configService.SaveAsync(_config); }
         catch (Exception ex)
@@ -207,13 +210,25 @@ public sealed class MainViewModel : ObservableObject
 
     public void AdjustOpacity(double delta)
     {
-        _config.BallOpacity = Math.Clamp(Math.Round(_config.BallOpacity + delta, 2), 0.05, 1.0);
-        _config.WindowOpacity = Math.Clamp(Math.Round(_config.WindowOpacity + delta, 2), 0.3, 1.0);
+        if (_config.DualMachine.IsFusionDisplay)
+            _config.DualMachine.FusionOpacity = Math.Clamp(Math.Round(_config.EffectiveWindowOpacity + delta, 2), .3, 1);
+        else
+        {
+            _config.BallOpacity = Math.Clamp(Math.Round(_config.BallOpacity + delta, 2), 0.05, 1.0);
+            _config.WindowOpacity = Math.Clamp(Math.Round(_config.WindowOpacity + delta, 2), 0.3, 1.0);
+        }
         RaisePropertyChanged(nameof(BallOpacity));
         RaisePropertyChanged(nameof(WindowOpacity));
         RaisePropertyChanged(nameof(WindowBackdropBrush));
         ConfigChanged?.Invoke(_config.Clone());
-        StatusText = $"Opacity: window {_config.WindowOpacity:P0}, ball {_config.BallOpacity:P0}";
+        StatusText = $"窗口不透明度：{_config.EffectiveWindowOpacity:P0}";
+    }
+
+    public async Task DisableFusionDisplayAsync()
+    {
+        _config.DualMachine.FusionDisplayEnabled = false;
+        ConfigChanged?.Invoke(_config.Clone());
+        await _configService.SaveAsync(_config);
     }
 
     public bool IsCompactChatMode => _config.CompactChatMode;

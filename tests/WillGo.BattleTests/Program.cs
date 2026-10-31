@@ -50,6 +50,12 @@ internal static class Program
         {
             try
             {
+                if (args.Contains("--fusion-only"))
+                {
+                    await FusionDisplayTests.RunAsync(Check);
+                    Console.WriteLine($"PASS: {_checks} fusion display checks");
+                    return;
+                }
                 if (args.Contains("--dual-machine-only"))
                 {
                     await DualMachineTests.RunAsync(Check);
@@ -69,6 +75,7 @@ internal static class Program
                     await TestContextAsync();
                     await DoubaoCloudTests.RunAsync(Check);
                     await DualMachineTests.RunAsync(Check);
+                    await FusionDisplayTests.RunAsync(Check);
                     await SpeechArchiveTests.RunAsync(Check);
                     await BattleHistoryTests.RunAsync(Check);
                     await LoginTests.RunAsync(Check);
@@ -137,7 +144,7 @@ internal static class Program
                     }
                     typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.SetValue(app, new LoginTests.MemoryConfig
                     {
-                        BeforeSave = dataRole ? config => config.DualMachine = new() { Enabled = true, Role = DualMachineRole.Data, Port = 39657 } : null
+                        BeforeSave = dataRole ? config => config.DualMachine = new() { Enabled = true, Role = DualMachineRole.Data, Port = 39657, FusionDisplayEnabled = true } : null
                     });
                     var loginVm = (LoginViewModel)login.DataContext;
                     var validator = new LoginTests.FakeValidation { Result = new() { StatusCode = "USER_DISABLED" } };
@@ -359,6 +366,31 @@ internal static class Program
         Send(DisplayControlAction.ToggleClickThrough);
         await Until(() => !WindowInteraction.IsClickThrough);
         Check(battle.IsVisible, "remote mouse passthrough toggles twice without hiding the display window");
+        var settingsCallback = main.OpenSettingsDialogAsync;
+        main.OpenSettingsDialogAsync = config =>
+        {
+            config.DualMachine.FusionDisplayEnabled = true;
+            return Task.FromResult<AppConfig?>(config);
+        };
+        main.OpenSettingsCommand.Execute(null);
+        await Until(() => battle.Owner?.Title == "willGo 融合器幕布");
+        main.OpenSettingsDialogAsync = settingsCallback;
+        Check(data.IsConnected && !vm.IsRecording && ((FloatingDeskAssistant.UI.Controls.AnswerContentPresenter)battle.FindName("AnswerContent")).ContentFontSize == 22,
+            "saving fusion preferences creates the backdrop without reconnecting transport or starting capture");
+        var normalOpacity = main.WindowOpacity;
+        Send(DisplayControlAction.DecreaseOpacity);
+        await Until(() => main.GetConfigSnapshot().DualMachine.FusionOpacity == .95);
+        await Until(() => ((LoginTests.MemoryConfig)typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.GetValue(app)!).Saved!.DualMachine.FusionOpacity == .95);
+        Check(main.WindowOpacity == normalOpacity && battle.Owner is { IsVisible: true },
+            "forwarded opacity updates and persists only fusion opacity while backdrop stays opaque");
+        ((Button)battle.FindName("IncreaseAnswerFontButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => main.GetConfigSnapshot().DualMachine.FusionAnswerFontSize == 23);
+        Check(main.GetConfigSnapshot().Battle.AnswerFontSize == 22,
+            "production font toolbar preserves the normal answer size in fusion mode");
+        ((Button)battle.FindName("FusionExitButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Until(() => battle.Owner is null && !main.GetConfigSnapshot().DualMachine.FusionDisplayEnabled);
+        Check(data.IsConnected && battle.IsVisible && ((LoginTests.MemoryConfig)typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.GetValue(app)!).Saved!.DualMachine.FusionDisplayEnabled == false,
+            "production fusion exit button restores desktop and persists its preference without disconnecting");
     }
 
     private static int DualMachineFreePort()

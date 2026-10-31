@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:FloatingDeskAssistant.UI.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="willGo" Width="1120" Height="760" MinWidth="760" MinHeight="480"
-        WindowStyle="None" ResizeMode="CanResize" Background="White" Foreground="#FF202428"
+        WindowStyle="None" ResizeMode="CanResize" Background="{DynamicResource BattleSurface}" Foreground="{DynamicResource BattleText}"
         FontFamily="Microsoft YaHei UI,Microsoft YaHei,Segoe UI" FontSize="13"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
@@ -15,7 +15,7 @@
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
         <ResourceDictionary>
-        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/LightTheme.xaml" /></ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/LightTheme.xaml" /><ResourceDictionary Source="../Themes/BattleTheme.xaml" /></ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <Style TargetType="Button" BasedOn="{StaticResource LightButton}">
             <Setter Property="Padding" Value="10,6" />
@@ -33,49 +33,50 @@
         <Style x:Key="ComposerSendButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
             <Setter Property="Width" Value="36" /><Setter Property="Height" Value="36" />
             <Setter Property="Margin" Value="8,0,0,0" />
-            <Setter Property="Background" Value="#FFE2EEE7" /><Setter Property="Foreground" Value="#FF245A3D" />
+            <Setter Property="Background" Value="{DynamicResource BattleSend}" /><Setter Property="Foreground" Value="{DynamicResource BattleSendText}" />
             <Setter Property="Template"><Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="SendSurface" CornerRadius="18" Background="{TemplateBinding Background}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SendSurface" Property="Background" Value="#FFCADFCF" /></Trigger>
-                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="SendSurface" Property="Background" Value="#FFB9D2C1" /></Trigger>
-                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#FF9BA5A0" /><Setter TargetName="SendSurface" Property="Background" Value="#FFEDF1EF" /></Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SendSurface" Property="BorderBrush" Value="#FF38785B" /><Setter TargetName="SendSurface" Property="BorderThickness" Value="1" /></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SendSurface" Property="Background" Value="{DynamicResource BattleSelected}" /></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="SendSurface" Property="Background" Value="{DynamicResource BattleSelected}" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource BattleSecondary}" /><Setter TargetName="SendSurface" Property="Background" Value="{DynamicResource BattlePanel}" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SendSurface" Property="BorderBrush" Value="{DynamicResource BattleAccent}" /><Setter TargetName="SendSurface" Property="BorderThickness" Value="1" /></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value></Setter>
         </Style>
         </ResourceDictionary>
     </Window.Resources>
-    <Border x:Name="WindowFrame" CornerRadius="16" Background="White" BorderBrush="#FFD4DDD7" BorderThickness="1">
+    <Border x:Name="WindowFrame" CornerRadius="16" Background="{DynamicResource BattleSurface}" BorderBrush="{DynamicResource BattleBorder}" BorderThickness="1">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Border Background="#FFFFFFFF" BorderBrush="#FFE1E6E3" BorderThickness="0,0,0,1" Padding="16,11" MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
+        <Border Background="{DynamicResource BattleSurface}" BorderBrush="{DynamicResource BattleBorder}" BorderThickness="0,0,0,1" Padding="16,11" MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock x:Name="AppTitle" Text="willGo" FontSize="16" FontWeight="SemiBold" Foreground="#FF202428" />
-                    <TextBlock Text="{Binding ConnectionStatus}" Foreground="#FF616B73" FontSize="11" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding Status}" Foreground="#FF2E6E4F" FontSize="11" Margin="0,3,8,0" TextWrapping="Wrap" />
+                    <TextBlock x:Name="AppTitle" Text="willGo" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource BattleText}" />
+                    <TextBlock Text="{Binding ConnectionStatus}" Foreground="{DynamicResource BattleSecondary}" FontSize="11" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Status}" Foreground="{DynamicResource BattleAccent}" FontSize="11" Margin="0,3,8,0" TextWrapping="Wrap" />
                 </StackPanel>
                 <WrapPanel Grid.Column="1" VerticalAlignment="Center">
                     <Button x:Name="InteractionButton" Style="{StaticResource IconButton}" Click="Interaction_OnClick" ToolTip="可点击">
                         <Ellipse x:Name="InteractionIndicator" Width="14" Height="14" Fill="#FF303434" Stroke="#FF64716A" StrokeThickness="1" />
                     </Button>
-                    <Button x:Name="RecordingButton" Content="{Binding RecordingButtonText}" Command="{Binding ToggleRecordingCommand}" Background="#FFEAF3EE" />
+                    <Button x:Name="RecordingButton" Content="{Binding RecordingButtonText}" Command="{Binding ToggleRecordingCommand}" Background="{DynamicResource BattleSelected}" />
                     <Button x:Name="HistoryButton" Click="History_OnClick" ToolTip="历史战斗"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,6,0" /><TextBlock Text="历史战斗" /></StackPanel></Button>
                     <Button Style="{StaticResource IconButton}" Content="&#xE722;" ToolTip="按设置截图并提问（Ctrl+Shift+S）" Command="{Binding ScreenshotCommand}" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE8EA;" ToolTip="手机扫码截图" Click="Phone_OnClick" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="取消全部回答" Command="{Binding CancelCommand}" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="清空本次记录" Command="{Binding ClearCommand}" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="设置" Click="Settings_OnClick" />
+                    <Button x:Name="FusionExitButton" Style="{StaticResource IconButton}" Content="&#xE73F;" Visibility="Collapsed" ToolTip="退出融合器显示并恢复桌面" Click="FusionExit_OnClick" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE70E;" ToolTip="收起窗口" Click="Hide_OnClick" />
                 </WrapPanel>
             </Grid>
@@ -86,11 +87,11 @@
                 <ColumnDefinition Width="12" />
                 <ColumnDefinition x:Name="AnswerColumn" Width="*" MinWidth="380" />
             </Grid.ColumnDefinitions>
-            <Grid Background="#FFF7F8F9">
+            <Grid Background="{DynamicResource BattlePanel}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                <TextBlock Text="问题记录" Foreground="#FF616B73" Margin="14,14,10,10" FontWeight="SemiBold" />
+                <TextBlock Text="问题记录" Foreground="{DynamicResource BattleSecondary}" Margin="14,14,10,10" FontWeight="SemiBold" />
                 <ListBox x:Name="QuestionList" Grid.Row="1" ItemsSource="{Binding Entries}" SelectedItem="{Binding Selected}"
-                         Background="Transparent" BorderThickness="0" Foreground="#FF202428"
+                         Background="Transparent" BorderThickness="0" Foreground="{DynamicResource BattleText}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
@@ -103,8 +104,8 @@
                                         <ContentPresenter />
                                     </Border>
                                     <ControlTemplate.Triggers>
-                                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#FFE6F0E9" /><Setter TargetName="ItemBorder" Property="BorderBrush" Value="#FF2E6E4F" /></Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="#FFEDF1F3" /></Trigger>
+                                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource BattleSelected}" /><Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource BattleAccent}" /></Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource BattleHover}" /></Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate></Setter.Value>
                             </Setter>
@@ -112,29 +113,29 @@
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate><DataTemplate>
                         <StackPanel>
-                            <TextBlock Text="{Binding Title}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="13" Height="20" />
+                            <TextBlock Text="{Binding Title}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Height="20" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="64" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding TimeLabel}" Foreground="#FF66717A" FontSize="10" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#FF2E6E4F" TextTrimming="CharacterEllipsis" FontSize="10" TextAlignment="Right" />
+                                <TextBlock Text="{Binding TimeLabel}" Foreground="{DynamicResource BattleSecondary}" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{DynamicResource BattleAccent}" TextTrimming="CharacterEllipsis" FontSize="10" TextAlignment="Right" />
                             </Grid>
                         </StackPanel>
                     </DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
             <GridSplitter x:Name="QuestionSplitter" Grid.Column="1" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
-                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeWE" Background="#FFF3F5F4"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeWE" Background="{DynamicResource BattlePanel}"
                           ShowsPreview="False" DragIncrement="1" KeyboardIncrement="16" Focusable="True"
                           ToolTip="调整问题栏宽度" AutomationProperties.Name="问题与答案分隔条"
                           DragStarted="QuestionSplitter_OnDragStarted" DragCompleted="QuestionSplitter_OnDragCompleted" KeyUp="QuestionSplitter_OnKeyUp">
                 <GridSplitter.Template><ControlTemplate TargetType="GridSplitter">
                     <Border x:Name="SplitterTrack" Background="{TemplateBinding Background}">
-                        <Border x:Name="SplitterGrip" Width="3" Height="34" CornerRadius="1.5" Background="#FFC8D2CC" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border x:Name="SplitterGrip" Width="3" Height="34" CornerRadius="1.5" Background="{DynamicResource BattleGrip}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SplitterTrack" Property="Background" Value="#FFE7EDE9" /><Setter TargetName="SplitterGrip" Property="Background" Value="#FF71927E" /></Trigger>
-                        <Trigger Property="IsDragging" Value="True"><Setter TargetName="SplitterGrip" Property="Background" Value="#FF38785B" /></Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SplitterGrip" Property="Background" Value="#FF38785B" /></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SplitterTrack" Property="Background" Value="{DynamicResource BattleHover}" /><Setter TargetName="SplitterGrip" Property="Background" Value="{DynamicResource BattleAccent}" /></Trigger>
+                        <Trigger Property="IsDragging" Value="True"><Setter TargetName="SplitterGrip" Property="Background" Value="{DynamicResource BattleAccent}" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SplitterGrip" Property="Background" Value="{DynamicResource BattleAccent}" /></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate></GridSplitter.Template>
             </GridSplitter>
@@ -145,7 +146,7 @@
                     <TextBox x:Name="QuestionText" Text="{Binding Selected.Heading, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="100" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent" FontSize="20" FontWeight="SemiBold" Padding="0,4" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="10,0,0,0">
                         <Button x:Name="DecreaseAnswerFontButton" Style="{StaticResource IconButton}" Content="&#xE738;" ToolTip="缩小答案字号" Click="DecreaseAnswerFont_OnClick" />
-                        <TextBlock x:Name="AnswerFontSizeLabel" Text="18" Width="26" TextAlignment="Center" Foreground="#FF616B73" VerticalAlignment="Center" FontSize="12" />
+                        <TextBlock x:Name="AnswerFontSizeLabel" Text="18" Width="26" TextAlignment="Center" Foreground="{DynamicResource BattleSecondary}" VerticalAlignment="Center" FontSize="12" />
                         <Button x:Name="IncreaseAnswerFontButton" Style="{StaticResource IconButton}" Content="&#xE710;" ToolTip="放大答案字号" Click="IncreaseAnswerFont_OnClick" />
                         <Button Style="{StaticResource IconButton}" Content="&#xE72C;" ToolTip="重新回答选中问题" Command="{Binding RetryCommand}" Margin="10,0,0,0" />
                     </StackPanel>
@@ -164,39 +165,39 @@
                         </Grid>
                         <ScrollViewer x:Name="ScreenshotQuestionScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="0,0,8,0">
-                                <TextBlock Text="{Binding Selected.Status}" Foreground="#FF616B73" TextWrapping="Wrap" Margin="0,0,0,12">
+                                <TextBlock Text="{Binding Selected.Status}" Foreground="{DynamicResource BattleSecondary}" TextWrapping="Wrap" Margin="0,0,0,12">
                                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding Selected.HasExtractedQuestion}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                 </TextBlock>
                                 <controls:AnswerContentPresenter x:Name="ScreenshotQuestionContent" Text="{Binding Selected.ExtractedQuestion}" />
-                                <Expander Header="原始截图" IsExpanded="False" Margin="0,10,0,10" Foreground="#FF616B73"><Image x:Name="ScreenshotOriginalImage" Source="{Binding Selected.ImagePreview}" Stretch="Uniform" MaxHeight="260" HorizontalAlignment="Left" Margin="0,8,0,0" /></Expander>
+                                <Expander Header="原始截图" IsExpanded="False" Margin="0,10,0,10" Foreground="{DynamicResource BattleSecondary}"><Image x:Name="ScreenshotOriginalImage" Source="{Binding Selected.ImagePreview}" Stretch="Uniform" MaxHeight="260" HorizontalAlignment="Left" Margin="0,8,0,0" /></Expander>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
                     <GridSplitter x:Name="ScreenshotSplitter" Grid.Column="1" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
-                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeWE" Background="#FFF3F5F4"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="SizeWE" Background="{DynamicResource BattlePanel}"
                                   ShowsPreview="False" DragIncrement="1" KeyboardIncrement="16" Focusable="True" ToolTip="调整题目与答案宽度"
                                   AutomationProperties.Name="截图题目与答案分隔条" Visibility="{Binding Selected.IsScreenshot, Converter={StaticResource BoolToVisibility}}"
                                   DragStarted="ScreenshotSplitter_OnDragStarted" DragCompleted="ScreenshotSplitter_OnDragCompleted" KeyUp="ScreenshotSplitter_OnKeyUp">
-                        <GridSplitter.Template><ControlTemplate TargetType="GridSplitter"><Border Background="{TemplateBinding Background}"><Border Width="3" Height="34" CornerRadius="1.5" Background="#FF9EB5A6" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></GridSplitter.Template>
+                        <GridSplitter.Template><ControlTemplate TargetType="GridSplitter"><Border Background="{TemplateBinding Background}"><Border Width="3" Height="34" CornerRadius="1.5" Background="{DynamicResource BattleGrip}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></GridSplitter.Template>
                     </GridSplitter>
                     <Grid Grid.Column="2" Margin="12,0,0,0" x:Name="AnswerReadingPane">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                     <TextBlock Text="答案" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12" Visibility="{Binding Selected.IsScreenshot, Converter={StaticResource BoolToVisibility}}" />
                 <ScrollViewer x:Name="AnswerScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,4,10,0">
-                        <TextBlock Text="暂无问题" Foreground="#FF6D767D" Margin="0,20,0,0">
+                        <TextBlock Text="暂无问题" Foreground="{DynamicResource BattleSecondary}" Margin="0,20,0,0">
                             <TextBlock.Style><Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers><DataTrigger Binding="{Binding Selected}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                             </Style></TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Text="{Binding Selected.Status}" Foreground="#FF2E6E4F" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14" />
+                        <TextBlock Text="{Binding Selected.Status}" Foreground="{DynamicResource BattleAccent}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14" />
                         <controls:AnswerContentPresenter x:Name="AnswerContent" Text="{Binding Selected.Answer}" />
                     </StackPanel>
                 </ScrollViewer>
                     </Grid>
                 </Grid>
-                <Border x:Name="ComposerBorder" Grid.Row="2" Margin="0,12,0,0" CornerRadius="16" Background="#FFFAFBFA" BorderBrush="#FFD4DED7" BorderThickness="1" Padding="10,7,8,7">
+                <Border x:Name="ComposerBorder" Grid.Row="2" Margin="0,12,0,0" CornerRadius="16" Background="{DynamicResource BattleComposer}" BorderBrush="{DynamicResource BattleBorder}" BorderThickness="1" Padding="10,7,8,7">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <TextBox x:Name="ManualInput" Text="{Binding ManualText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
@@ -208,11 +209,11 @@
                 </Border>
             </Grid>
         </Grid>
-        <Expander Grid.Row="2" Header="实时转写" IsExpanded="True" Foreground="#FF384148" Background="#FFF7F8F9" BorderBrush="#FFD8DEE2" BorderThickness="0,1,0,0" Padding="10,6">
+        <Expander x:Name="TranscriptExpander" Grid.Row="2" Header="实时转写" IsExpanded="True" Foreground="{DynamicResource BattleText}" Background="{DynamicResource BattlePanel}" BorderBrush="{DynamicResource BattleBorder}" BorderThickness="0,1,0,0" Padding="10,6">
             <Grid Margin="0,5,0,0">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <TextBlock Text="{Binding SpeakerPartial, StringFormat=对方：{0}}" Foreground="#FF286445" TextWrapping="Wrap" MaxHeight="34" />
-                <TextBlock Grid.Row="1" Text="{Binding MicrophonePartial, StringFormat=我：{0}}" Foreground="#FF315F86" TextWrapping="Wrap" MaxHeight="34" />
+                <TextBlock Text="{Binding SpeakerPartial, StringFormat=对方：{0}}" Foreground="{DynamicResource BattleAccent}" TextWrapping="Wrap" MaxHeight="34" />
+                <TextBlock Grid.Row="1" Text="{Binding MicrophonePartial, StringFormat=我：{0}}" Foreground="{DynamicResource BattleAccent}" TextWrapping="Wrap" MaxHeight="34" />
                 <TextBox Grid.Row="2" x:Name="TranscriptBox" Text="{Binding Transcript, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Height="86" VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent" Padding="0,6" FontSize="12" />
             </Grid>
         </Expander>
