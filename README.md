@@ -3,6 +3,12 @@
 `willGo` is a Windows desktop assistant built with `.NET 8`, `WPF`, and `Windows Forms` interop.
 It supports screenshot-based sending, local image attachment, configurable model endpoints, and a phone-accessible LAN trigger page for remote desktop capture.
 
+## Current Version Baseline
+
+See the [Chinese feature baseline for 1.10.5](docs/current-version-1.10.5.md)
+for the current speech recognition, screenshot solving, model routing, recording,
+history, shortcuts and known limitations before the next major update.
+
 ## Requirements
 
 - Windows 10/11
