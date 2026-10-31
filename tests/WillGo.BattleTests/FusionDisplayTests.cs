@@ -61,6 +61,7 @@ internal static class FusionDisplayTests
         var entry = new BattleEntry { Text = "MySQL 为什么使用 B+ 树索引？", Source = SpeechSource.Speaker,
             Answer = "## 核心思路\n\n**B+ 树**把数据放在叶子节点，减少磁盘读取次数，适合范围查询。\n\n## 复杂度\n\n查找复杂度为 **O(log n)**。\n\n## 代码示例\n\n```java\nList<User> users = repository.findByAgeBetween(20, 30);\nfor (User user : users) {\n    System.out.println(user.getName());\n}\n```", Status = "已完成" };
         vm.Entries.Add(entry); vm.Selected = entry;
+        WindowInteraction.SetClickThrough(true);
         var window = new BattleWindow(vm, config);
         try
         {
@@ -107,9 +108,8 @@ internal static class FusionDisplayTests
                 check(edited.DualMachine.FusionStyle == FusionStyle.Dark && config.DualMachine.FusionStyle == FusionStyle.Amber && settings.Window.Owner == window,
                     "fusion: owned settings edit a Chinese draft without changing active appearance");
             }
-            WindowInteraction.SetClickThrough(true);
-            check(!window.IsHitTestVisible && !backdrop.IsHitTestVisible, "fusion: mouse passthrough applies to both workspace and backdrop");
-            WindowInteraction.SetClickThrough(false);
+            check(!WindowInteraction.IsClickThrough && window.IsHitTestVisible && ((Button)window.FindName("InteractionButton")).Visibility == Visibility.Collapsed,
+                "fusion: entering clears old mouse passthrough and hides its unnecessary indicator");
             window.Hide(); await Task.Delay(30);
             check(window.Owner is null && !backdrop.IsVisible && !Backdrops().Any(), "fusion: hide removes the backdrop and immediately restores the desktop");
             window.Show(); await Task.Delay(30);

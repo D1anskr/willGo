@@ -81,6 +81,7 @@ public partial class BattleWindow : Window
         {
             if (_fusionStyle is null && style is not null)
             {
+                WindowInteraction.SetClickThrough(false);
                 _standardTranscriptExpanded = TranscriptExpander.IsExpanded;
                 TranscriptExpander.IsExpanded = false;
             }
@@ -91,6 +92,7 @@ public partial class BattleWindow : Window
             AnswerContent.Palette = ScreenshotQuestionContent.Palette = style;
         }
         FusionExitButton.Visibility = dual.IsFusionDisplay ? Visibility.Visible : Visibility.Collapsed;
+        InteractionButton.Visibility = dual.IsFusionDisplay ? Visibility.Collapsed : Visibility.Visible;
         QuestionList.FontSize = dual.IsFusionDisplay ? 15 : 13;
         SetAnswerFontSize(dual.IsFusionDisplay ? dual.FusionAnswerFontSize : battle.AnswerFontSize);
         if (!_splitterDragging)
@@ -241,7 +243,10 @@ public partial class BattleWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(InteractionButton, (string)InteractionButton.ToolTip);
     }
 
-    private void Interaction_OnClick(object sender, RoutedEventArgs e) => WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough);
+    private void Interaction_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (_fusionStyle is null) WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough);
+    }
 
     public RemoteBallMoveResult MoveByPixels(int dx, int dy)
     {

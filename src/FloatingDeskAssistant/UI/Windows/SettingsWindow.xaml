@@ -314,6 +314,7 @@
                                         <TextBlock Text="融合答案字号" VerticalAlignment="Center" /><Slider Grid.Column="1" Minimum="14" Maximum="28" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EditableConfig.DualMachine.FusionAnswerFontSize}" Margin="0,0,16,0" /><TextBlock Grid.Column="2" Text="{Binding EditableConfig.DualMachine.FusionAnswerFontSize, StringFormat=F0}" TextAlignment="Right" />
                                     </Grid>
                                     <TextBlock Text="先试纯黑幕布、深底亮字、100% 不透明度。幕布覆盖显示端所有屏幕的桌面、图标和任务栏；收起窗口或退出融合器显示后恢复。" TextWrapping="Wrap" Foreground="#FF616B73" />
+                                    <TextBlock Text="需要减轻遮挡时，降低融合不透明度，或使用数据端 Ctrl+Shift+左/右实时调节。融合器模式不使用鼠标穿透开关，Ctrl+1 不改变显示端的点击状态。" TextWrapping="Wrap" Foreground="#FF616B73" Margin="0,8,0,0" />
                                 </StackPanel>
                             </GroupBox>
                         </StackPanel>

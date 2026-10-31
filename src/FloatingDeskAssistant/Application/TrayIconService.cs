@@ -28,6 +28,7 @@ public sealed class TrayIconService : IDisposable
     public bool Visible => _icon.Visible;
 
     public void SetRecording(bool recording) => _icon.Text = recording ? "willGo - 正在采集麦克风与系统播放" : "willGo";
+    public void SetFusionDisplay(bool enabled) => _menu.Items[2].Visible = !enabled;
 
     public void SetConnectionStatus(bool data, string status, bool streaming)
     {

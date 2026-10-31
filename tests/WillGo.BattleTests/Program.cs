@@ -378,11 +378,12 @@ internal static class Program
         Check(data.IsConnected && !vm.IsRecording && ((FloatingDeskAssistant.UI.Controls.AnswerContentPresenter)battle.FindName("AnswerContent")).ContentFontSize == 22,
             "saving fusion preferences creates the backdrop without reconnecting transport or starting capture");
         var normalOpacity = main.WindowOpacity;
+        Send(DisplayControlAction.ToggleClickThrough);
         Send(DisplayControlAction.DecreaseOpacity);
         await Until(() => main.GetConfigSnapshot().DualMachine.FusionOpacity == .95);
         await Until(() => ((LoginTests.MemoryConfig)typeof(FloatingDeskAssistant.App).GetField("_configService", flags)!.GetValue(app)!).Saved!.DualMachine.FusionOpacity == .95);
-        Check(main.WindowOpacity == normalOpacity && battle.Owner is { IsVisible: true },
-            "forwarded opacity updates and persists only fusion opacity while backdrop stays opaque");
+        Check(main.WindowOpacity == normalOpacity && battle.Owner is { IsVisible: true } && !WindowInteraction.IsClickThrough && battle.IsHitTestVisible,
+            "fusion ignores forwarded mouse passthrough while remote opacity still adjusts and persists normally");
         ((Button)battle.FindName("IncreaseAnswerFontButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Until(() => main.GetConfigSnapshot().DualMachine.FusionAnswerFontSize == 23);
         Check(main.GetConfigSnapshot().Battle.AnswerFontSize == 22,

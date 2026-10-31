@@ -211,6 +211,7 @@ public partial class App : System.Windows.Application
                 WindowCaptureProtection.SetEnabled(updated.HideFromScreenCapture);
             }
             _battleWindow?.UpdateConfig(updated);
+            _trayIcon?.SetFusionDisplay(updated.DualMachine.IsFusionDisplay);
             _historyWindow?.UpdateConfig(updated);
             _ = ApplyDualMachineModeAsync(updated);
         };
@@ -276,6 +277,7 @@ public partial class App : System.Windows.Application
         };
         _trayIcon = new TrayIconService(ShowWorkspace, OpenSettingsFromTray,
             () => RouteHotkey(DisplayControlAction.ToggleClickThrough), async () => await ExitAppAsync());
+        _trayIcon.SetFusionDisplay(_mainViewModel.GetConfigSnapshot().DualMachine.IsFusionDisplay);
         InitializeOpacityHotkeys();
         InitializeInteractionHotkeys();
         var navigationReady = _interactionHotkeys!.SetQuestionNavigationEnabled(true);
@@ -359,7 +361,10 @@ public partial class App : System.Windows.Application
     {
         switch (action)
         {
-            case DisplayControlAction.ToggleClickThrough: WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough); break;
+            case DisplayControlAction.ToggleClickThrough:
+                if (_mainViewModel?.GetConfigSnapshot().DualMachine.IsFusionDisplay != true)
+                    WindowInteraction.SetClickThrough(!WindowInteraction.IsClickThrough);
+                break;
             case DisplayControlAction.PreviousQuestion: _battleViewModel?.SelectQuestion(-1); break;
             case DisplayControlAction.NextQuestion: _battleViewModel?.SelectQuestion(1); break;
             case DisplayControlAction.ScrollUp: _battleWindow?.ScrollConversation(-1); break;
